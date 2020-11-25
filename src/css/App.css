@@ -1,38 +1,93 @@
+/*Color palette:
+https://www.scu.edu/umc/visual-identity-elements/scu-color-palette/
+Let's go horseys
+*/
+
 .App {
   text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+  background-color: #dfdbd3;
+  min-height: 100vh;
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  height: 100px;
+}
+
+.Page-header {
+  background-color: #b30738;
+  width: 100%;
+  height: inherit;
+  position: absolute;
+  top: 0px;
+  color: #f4f2f0;
   font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.Page-header h1 {
+  margin-top: 20px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.Selectors {
+  margin-top: 30px;
+}
+
+.Tool-selectors div {
+  display: inline-block;
+  margin-right: 50px;
+}
+
+.Chord-selectors {
+  margin-top: 10px;
+}
+
+.Chord-selectors div {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.Selector-text {
+  width: fit-content;
+  display: inline-block;
+  margin: 0px 10px;
+}
+
+/*!important to override react-bootstrap default styles*/
+button {
+  background-color: #546575 !important;
+  border-color: #546575 !important;
+}
+
+.Record-generate {
+  margin-top: 50px;
+}
+
+.Record-generate i {
+  margin-right: 8px;
+}
+
+.Visualizers {
+  margin-top: 10px;
+}
+
+.Visualizers {
+  --visualizer-padding: 30px;
+}
+
+.Visualizers > div {
+  padding: var(--visualizer-padding);
+  margin: 20px 20px;
+  display: inline-block;
+  border-style: solid;
+  border-color: #033b4c;
+  background-color: #e9e8d5;
+  width: 550px;
+  height: 200px;
+}
+
+.Visualizer-info {
+  color: #5b6770;
+  width: fit-content;
+  position: relative;
+  top: calc(0px - var(--visualizer-padding));
+  left: calc(3px - var(--visualizer-padding));
 }
