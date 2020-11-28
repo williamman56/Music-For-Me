@@ -2,6 +2,7 @@ export const supportedInstruments = ['Piano', 'Guitar', 'Mayonnaise']
 
 export const chords = ['C', 'Am', 'F', 'G']
 export const BAR_LENGTH = 16;
+export const STEPS_PER_QUARTER = 1;
 
 export const config = {
     noteHeight: 6,

@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button';
 import ValueSelector from './ValueSelector.jsx';
 import Visualizer from './visualizer.jsx';
 
-import {supportedInstruments, chords, EMPTY, BAR_LENGTH} from '../../variables/values.js';
+import {supportedInstruments, chords, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
 import {TWINKLE_TWINKLE} from '../../media/twinkle.js';
 
 import * as Tone from 'tone';
@@ -58,6 +58,7 @@ class Player extends Component {
     this.prototypeGenerateSequences = this.prototypeGenerateSequences.bind(this);
     this.playRecording = this.playRecording.bind(this);
     this.findLastNote = this.findLastNote.bind(this);
+    this.stepsToSeconds = this.stepsToSeconds.bind(this);
 
     this.Tone.start();
     console.log('audio is ready');
@@ -155,14 +156,15 @@ class Player extends Component {
   
   async recordPlayer() {
     if(!this.state.isRecording) {
-      this.curPlayerSeq = {notes:[]};
+      this.state.curPlayerSeq = {notes:[]};
+      let recordTime = this.stepsToSeconds(BAR_LENGTH);
 
       this.Tone.Transport.schedule(function(time){
           this.Tone.Transport.stop();
           this.state.isRecording = false;
           let endTime = time;
-          this.curPlayerSeq.totalTime = endTime - this.curPlayerSeq.startTime;
-          console.log('recording stopped');
+          this.state.curPlayerSeq.totalTime = endTime - this.state.curPlayerSeq.startTime;
+          console.log('Recording Stopped');
           //console.log(endTime-startTime);
       }, recordTime);
       
@@ -172,9 +174,10 @@ class Player extends Component {
               //document.getElementById('timer').textContent = (recordTime - Tone.Transport.seconds).toFixed(2);
           }, time)
       }, 0.1, 0, recordTime);
-      this.curPlayerSeq.startTime = this.Tone.now();
+      this.state.curPlayerSeq.startTime = this.Tone.now();
       this.state.isRecording = true;
       this.Tone.Transport.start();
+      console.log('Recording Started')
     }
   }
   
@@ -198,6 +201,11 @@ class Player extends Component {
         }
     }
     return -1;
+  }
+
+  //Given steps, returns how long in seconds the number of steps are
+  stepsToSeconds(steps) {
+    return steps * (60/(STEPS_PER_QUARTER*this.state.tempo));
   }
   
   playRecording() {
