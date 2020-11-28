@@ -56,14 +56,15 @@ class Player extends Component {
     this.onSelectChord = this.onSelectChord.bind(this);
     this.prototypeGenerateSequences = this.prototypeGenerateSequences.bind(this);
     this.playRecording = this.playRecording.bind(this);
-
-    WebMidi.enable(function (err) {
+    this.Tone.start();
+    console.log('audio is ready');
+    WebMidi.enable((err) => {
       if (err) {
           console.log('WebMidi could not be enabled.', err);
       } else {
           this.inputDevice = WebMidi.inputs[0];
           if (this.inputDevice) {
-            this.inputDevice.addListener('noteon', "all", function(e){
+            this.inputDevice.addListener('noteon', "all", (e) => {
                 console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +Tone.now());
                 /*if (recording) {
                     let note = {
@@ -77,7 +78,7 @@ class Player extends Component {
 
             })
 
-            this.inputDevice.addListener('noteoff', "all", function(e){
+            this.inputDevice.addListener('noteoff', "all", (e) => {
                 console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
                 /*if (recording) {
                     let i = findLastNote(notes, e.note.number);
