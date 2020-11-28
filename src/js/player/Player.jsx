@@ -68,28 +68,32 @@ class Player extends Component {
       } else {
           this.inputDevice = WebMidi.inputs[0];
           if (this.inputDevice) {
-            this.inputDevice.addListener('noteon', "all", (e) => {
-                console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
-                if (this.state.isRecording) {
-                    let note = {
-                        pitch: e.note.number,
-                        startTime: (this.Tone.now()-this.state.curPlayerSeq.startTime)
-                    };
-                    this.state.curPlayerSeq.notes.push(note);
-                }
+            this.inputDevice.addListener('noteon', "all", async (e) => {
+              console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
+              if (this.state.isRecording) {
+                let note = {
+                    pitch: e.note.number,
+                    startTime: (this.Tone.now()-this.state.curPlayerSeq.startTime)
+                };
+                let curPlayerSeq = this.state.curPlayerSeq;
+                curPlayerSeq.notes.push(note);
+                await this.setState({curPlayerSeq: curPlayerSeq});
+              }
 
-                this.sampler.triggerAttack([e.note.name + '' + e.note.octave])
+              this.sampler.triggerAttack([e.note.name + '' + e.note.octave])
 
             })
 
-            this.inputDevice.addListener('noteoff', "all", (e) => {
-                console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
-                if (this.state.isRecording) {
-                    let i = this.findLastNote(this.state.curPlayerSeq.notes, e.note.number);
-                    this.state.curPlayerSeq.notes[i].endTime = (this.Tone.now()-this.state.curPlayerSeq.startTime);
-                }
+            this.inputDevice.addListener('noteoff', "all", async (e) => {
+              console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
+              if (this.state.isRecording) {
+                let curPlayerSeq = this.state.curPlayerSeq;
+                let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
+                curPlayerSeq.notes[i].endTime = (this.Tone.now()-this.state.curPlayerSeq.startTime);
+                await this.setState({curPlayerSeq: curPlayerSeq});
+              }
 
-                this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
+              this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
             })
           } else {
             console.log('Midi Device could not be detected');
@@ -114,11 +118,12 @@ class Player extends Component {
     this.setState({selectedChords: select_chords});
   }
   
-  prototypeGenerateSequences() {
+  async prototypeGenerateSequences() {
     let sessionSeq;
     let newNotes;
 
-
+    console.log('Beginning Session');
+    //var playerSeq1 = await(this.recordPlayer())
     
     /*this.setState({isRecording: true, sessionSeq: primerSeq}, () => {
       this.generateNextSequence(this.state.noteSequences[0], this.state.selectedChords[1])
@@ -154,31 +159,41 @@ class Player extends Component {
     })
   }
   
-  async recordPlayer() {
-    if(!this.state.isRecording) {
-      this.state.curPlayerSeq = {notes:[]};
-      let recordTime = this.stepsToSeconds(BAR_LENGTH);
+  recordPlayer() {
+    return new Promise (async (resolve, reject) => {
+      if(!this.state.isRecording) {
+        await this.setState({curPlayerSeq: {notes:[]}});
 
-      this.Tone.Transport.schedule(function(time){
-          this.Tone.Transport.stop();
-          this.state.isRecording = false;
-          let endTime = time;
-          this.state.curPlayerSeq.totalTime = endTime - this.state.curPlayerSeq.startTime;
-          console.log('Recording Stopped');
-          //console.log(endTime-startTime);
-      }, recordTime);
-      
-      this.Tone.Transport.scheduleRepeat((time)=>{
-          //use the time argument to schedule a callback with Tone.Draw
-          this.Tone.Draw.schedule(() => {
-              //document.getElementById('timer').textContent = (recordTime - Tone.Transport.seconds).toFixed(2);
-          }, time)
-      }, 0.1, 0, recordTime);
-      this.state.curPlayerSeq.startTime = this.Tone.now();
-      this.state.isRecording = true;
-      this.Tone.Transport.start();
-      console.log('Recording Started')
-    }
+        let recordTime = this.stepsToSeconds(BAR_LENGTH);
+
+        this.Tone.Transport.schedule(async function(time){
+            this.Tone.Transport.stop();
+            let endTime = time;
+            //Operate on dummy var
+            let curPlayerSeq = this.state.curPlayerSeq;
+            curPlayerSeq.totalTime = endTime - this.state.curPlayerSeq.startTime;
+
+            await this.setState({isRecording: false, curPlayerSeq: curPlayerSeq});
+            
+            console.log('Recording Stopped');
+            resolve(this.state.curPlayerSeq);
+        }, recordTime);
+        
+        this.Tone.Transport.scheduleRepeat((time)=>{
+            //use the time argument to schedule a callback with Tone.Draw
+            this.Tone.Draw.schedule(() => {
+                console.log((recordTime - this.Tone.Transport.seconds).toFixed(2));
+            }, time)
+        }, 0.1, 0, recordTime);
+        //Operate on dummy var
+        let curPlayerSeq = this.state.curPlayerSeq;
+        curPlayerSeq.startTime = this.Tone.now();
+        await this.setState({isRecording: true, curPlayerSeq: curPlayerSeq});
+
+        this.Tone.Transport.start();
+        console.log('Recording Started');
+      }
+    });
   }
   
   combineNoteSeqs(note_seq1, note_seq2) {
