@@ -25,7 +25,8 @@ class Player extends Component {
       selectedChords: [chords[0], chords[1], chords[2], chords[3]],
       
       noteSequences: [primerSeq, EMPTY, EMPTY, EMPTY],
-      sessionSeq: primerSeq,
+      sessionSeq: {},
+      curPlayerSeq: {notes:[]},
       isPlaying: false,
       isRecording: false,
       isInitialized: false,
@@ -40,7 +41,7 @@ class Player extends Component {
 
     this.player = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/salamander');
     this.Tone = Tone;
-    this.sampler = new Tone.Sampler({
+    this.sampler = new this.Tone.Sampler({
       urls: {
         "C4": "C4.mp3",
         "D#4": "Ds4.mp3",
@@ -56,6 +57,8 @@ class Player extends Component {
     this.onSelectChord = this.onSelectChord.bind(this);
     this.prototypeGenerateSequences = this.prototypeGenerateSequences.bind(this);
     this.playRecording = this.playRecording.bind(this);
+    this.findLastNote = this.findLastNote.bind(this);
+
     this.Tone.start();
     console.log('audio is ready');
     WebMidi.enable((err) => {
@@ -65,14 +68,14 @@ class Player extends Component {
           this.inputDevice = WebMidi.inputs[0];
           if (this.inputDevice) {
             this.inputDevice.addListener('noteon', "all", (e) => {
-                console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +Tone.now());
-                /*if (recording) {
+                console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
+                if (this.state.isRecording) {
                     let note = {
                         pitch: e.note.number,
-                        startTime: (Tone.now()-startTime)
+                        startTime: (this.Tone.now()-this.state.curPlayerSeq.startTime)
                     };
-                    notes.push(note);
-                }*/
+                    this.state.curPlayerSeq.notes.push(note);
+                }
 
                 this.sampler.triggerAttack([e.note.name + '' + e.note.octave])
 
@@ -80,10 +83,10 @@ class Player extends Component {
 
             this.inputDevice.addListener('noteoff', "all", (e) => {
                 console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
-                /*if (recording) {
-                    let i = findLastNote(notes, e.note.number);
-                    notes[i].endTime = (Tone.now()-startTime);
-                }*/
+                if (this.state.isRecording) {
+                    let i = this.findLastNote(this.state.curPlayerSeq.notes, e.note.number);
+                    this.state.curPlayerSeq.notes[i].endTime = (this.Tone.now()-this.state.curPlayerSeq.startTime);
+                }
 
                 this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
             })
@@ -113,8 +116,10 @@ class Player extends Component {
   prototypeGenerateSequences() {
     let sessionSeq;
     let newNotes;
+
+
     
-    this.setState({isRecording: true, sessionSeq: primerSeq}, () => {
+    /*this.setState({isRecording: true, sessionSeq: primerSeq}, () => {
       this.generateNextSequence(this.state.noteSequences[0], this.state.selectedChords[1])
       .then((newSeq) => {
         sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, newSeq);
@@ -138,7 +143,7 @@ class Player extends Component {
           })
         })
       });
-    });
+    }); */
   }
   
   generateNextSequence(prevNotes, chord) {
@@ -146,6 +151,31 @@ class Player extends Component {
         let nextSeq = await this.rnn.continueSequence(prevNotes, BAR_LENGTH, this.state.temperature, [chord]);
         resolve(nextSeq);
     })
+  }
+  
+  async recordPlayer() {
+    if(!this.state.isRecording) {
+      this.curPlayerSeq = {notes:[]};
+
+      this.Tone.Transport.schedule(function(time){
+          this.Tone.Transport.stop();
+          this.state.isRecording = false;
+          let endTime = time;
+          this.curPlayerSeq.totalTime = endTime - this.curPlayerSeq.startTime;
+          console.log('recording stopped');
+          //console.log(endTime-startTime);
+      }, recordTime);
+      
+      this.Tone.Transport.scheduleRepeat((time)=>{
+          //use the time argument to schedule a callback with Tone.Draw
+          this.Tone.Draw.schedule(() => {
+              //document.getElementById('timer').textContent = (recordTime - Tone.Transport.seconds).toFixed(2);
+          }, time)
+      }, 0.1, 0, recordTime);
+      this.curPlayerSeq.startTime = this.Tone.now();
+      this.state.isRecording = true;
+      this.Tone.Transport.start();
+    }
   }
   
   combineNoteSeqs(note_seq1, note_seq2) {
