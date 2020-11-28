@@ -7,6 +7,9 @@ import Visualizer from './visualizer.jsx';
 import {supportedInstruments, chords, EMPTY, BAR_LENGTH} from '../../variables/values.js';
 import {TWINKLE_TWINKLE} from '../../media/twinkle.js';
 
+import * as Tone from 'tone';
+import WebMidi from '../../../node_modules/webmidi/webmidi.min.js'
+
 const mm = require('@magenta/music/es6/core');
 const mm_rnn = require('@magenta/music/es6/music_rnn');
 
@@ -36,13 +39,58 @@ class Player extends Component {
     );
 
     this.player = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/salamander');
-    this.Tone = mm.Player.tone;
+    this.Tone = Tone;
+    this.sampler = new Tone.Sampler({
+      urls: {
+        "C4": "C4.mp3",
+        "D#4": "Ds4.mp3",
+        "F#4": "Fs4.mp3",
+        "A4": "A4.mp3",
+      },
+      release: 1,
+      baseUrl: "https://tonejs.github.io/audio/salamander/",
+    }).toDestination();
     this.player.setTempo(this.state.tempo);
     
     this.onSelectInstrument = this.onSelectInstrument.bind(this);
     this.onSelectChord = this.onSelectChord.bind(this);
     this.prototypeGenerateSequences = this.prototypeGenerateSequences.bind(this);
     this.playRecording = this.playRecording.bind(this);
+
+    WebMidi.enable(function (err) {
+      if (err) {
+          console.log('WebMidi could not be enabled.', err);
+      } else {
+          this.inputDevice = WebMidi.inputs[0];
+          if (this.inputDevice) {
+            this.inputDevice.addListener('noteon', "all", function(e){
+                console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +Tone.now());
+                /*if (recording) {
+                    let note = {
+                        pitch: e.note.number,
+                        startTime: (Tone.now()-startTime)
+                    };
+                    notes.push(note);
+                }*/
+
+                this.sampler.triggerAttack([e.note.name + '' + e.note.octave])
+
+            })
+
+            this.inputDevice.addListener('noteoff', "all", function(e){
+                console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
+                /*if (recording) {
+                    let i = findLastNote(notes, e.note.number);
+                    notes[i].endTime = (Tone.now()-startTime);
+                }*/
+
+                this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
+            })
+          } else {
+            console.log('Midi Device could not be detected');
+          }
+      }
+    });
   }
   
   componentDidMount() {
@@ -110,6 +158,15 @@ class Player extends Component {
     }
     note_seq1.totalQuantizedSteps = totalSteps;
     return note_seq1
+  }
+
+  findLastNote(notes, pitch) {
+    for (var i = notes.length-1; i >= 0; i--) {
+        if (notes[i].pitch === pitch) {
+            return i;
+        }
+    }
+    return -1;
   }
   
   playRecording() {
