@@ -24,8 +24,8 @@ class Player extends Component {
       selectedInstrument: supportedInstruments[0],
       selectedChords: [chords[0], chords[1], chords[2], chords[3]],
       
-      noteSequences: [primerSeq, EMPTY, EMPTY, EMPTY],
-      sessionSeq: {},
+      noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY],
+      sessionSeq: EMPTY,
       curPlayerSeq: {notes:[]},
       isPlaying: false,
       isRecording: false,
@@ -40,6 +40,7 @@ class Player extends Component {
     );
 
     this.player = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/salamander');
+
     this.Tone = Tone;
     this.sampler = new this.Tone.Sampler({
       urls: {
@@ -69,7 +70,7 @@ class Player extends Component {
           this.inputDevice = WebMidi.inputs[0];
           if (this.inputDevice) {
             this.inputDevice.addListener('noteon', "all", async (e) => {
-              console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
+              //console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
               if (this.state.isRecording) {
                 let note = {
                     pitch: e.note.number,
@@ -85,7 +86,7 @@ class Player extends Component {
             })
 
             this.inputDevice.addListener('noteoff', "all", async (e) => {
-              console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
+              //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
               if (this.state.isRecording) {
                 let curPlayerSeq = this.state.curPlayerSeq;
                 let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
@@ -120,36 +121,43 @@ class Player extends Component {
   
   async prototypeGenerateSequences() {
     let sessionSeq;
-    let newNotes;
-
+    let noteSequences;
+    await this.Tone.start();
+    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY]});
     console.log('Beginning Session');
-    //var playerSeq1 = await(this.recordPlayer())
+
+    //BAR 1: PLAYER
+    console.log('BAR 1');
+    var playerSeq1 = await(this.recordPlayer());
+    playerSeq1 = mm.sequences.quantizeNoteSequence(playerSeq1, STEPS_PER_QUARTER);
+    noteSequences = this.state.noteSequences;
+    noteSequences[0] = playerSeq1;
+    await this.setState({sessionSeq: playerSeq1, noteSequences: noteSequences});
+
+    //BAR 2: AI
+    console.log('BAR 2');
+    var aiSeq1 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[1]);
+    sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq1);
+    noteSequences[1] = aiSeq1;
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    await this.player.start(aiSeq1, this.state.tempo);
     
-    /*this.setState({isRecording: true, sessionSeq: primerSeq}, () => {
-      this.generateNextSequence(this.state.noteSequences[0], this.state.selectedChords[1])
-      .then((newSeq) => {
-        sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, newSeq);
-        newNotes = this.state.noteSequences;
-        newNotes[1] = newSeq;
-        this.setState({noteSequences: newNotes, sessionSeq: sessionSeq}, () => {
-          this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[2])
-          .then((newSeq) => {
-            sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, newSeq);
-            newNotes = this.state.noteSequences;
-            newNotes[2] = newSeq;
-            this.setState({noteSequences: newNotes, sessionSeq: sessionSeq}, () => {
-              this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3])
-              .then((newSeq) => {
-                sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, newSeq);
-                newNotes = this.state.noteSequences;
-                newNotes[3] = newSeq;
-                this.setState({noteSequences: newNotes, sessionSeq: sessionSeq});
-              })
-            })
-          })
-        })
-      });
-    }); */
+    //BAR 3: PLAYER
+    console.log('BAR 3');
+    var playerSeq2 = await(this.recordPlayer());
+    playerSeq2 = mm.sequences.quantizeNoteSequence(playerSeq2, STEPS_PER_QUARTER);
+    noteSequences[2] = playerSeq2;
+    sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, playerSeq2);
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+
+    //BAR 4: AI
+    console.log('BAR 4');
+    var aiSeq2 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3]);
+    sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq2);
+    noteSequences[3] = aiSeq2;
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    await this.player.start(aiSeq2, this.state.tempo);
+    console.log('DONE');
   }
   
   generateNextSequence(prevNotes, chord) {
@@ -166,8 +174,9 @@ class Player extends Component {
 
         let recordTime = this.stepsToSeconds(BAR_LENGTH);
 
-        this.Tone.Transport.schedule(async function(time){
+        this.Tone.Transport.schedule(async (time)=>{
             this.Tone.Transport.stop();
+            this.Tone.Transport.cancel(0);
             let endTime = time;
             //Operate on dummy var
             let curPlayerSeq = this.state.curPlayerSeq;
@@ -192,6 +201,9 @@ class Player extends Component {
 
         this.Tone.Transport.start();
         console.log('Recording Started');
+      } else {
+        console.log('Already Recording');
+        reject(EMPTY);
       }
     });
   }
