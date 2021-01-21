@@ -23,9 +23,11 @@ class Player extends Component {
     this.state = {
       selectedInstrument: supportedInstruments[0],
       selectedChords: [chords[0], chords[1], chords[2], chords[3]],
-      
+      //Array of note sequences in the sequence
       noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY],
+      //The entire sessionSeq in noteSeq
       sessionSeq: EMPTY,
+      //The players current playing notes. Resets every player turn
       curPlayerSeq: {notes:[]},
       isPlaying: false,
       isRecording: false,
@@ -63,37 +65,47 @@ class Player extends Component {
 
     this.Tone.start();
     console.log('audio is ready');
+
+    //Enable WebMIDI
     WebMidi.enable((err) => {
       if (err) {
           console.log('WebMidi could not be enabled.', err);
       } else {
+          //Detect first MIDI device connected. Will be default but selectable in the future
           this.inputDevice = WebMidi.inputs[0];
           if (this.inputDevice) {
+            //On note press
             this.inputDevice.addListener('noteon', "all", async (e) => {
               //console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
               if (this.state.isRecording) {
+                //Construct the note object
                 let note = {
                     pitch: e.note.number,
                     startTime: (this.Tone.now()-this.state.curPlayerSeq.startTime)
                 };
+                //TODO: integrate note into visualizer
+                //Push note onto curPlayerSeq stack
                 let curPlayerSeq = this.state.curPlayerSeq;
                 curPlayerSeq.notes.push(note);
                 await this.setState({curPlayerSeq: curPlayerSeq});
               }
-
-              this.sampler.triggerAttack([e.note.name + '' + e.note.octave])
+              //Play the note on the sampler
+              //TODO: Restrict this to not play on AI's turn
+              this.sampler.triggerAttack([e.note.name + '' + e.note.octave]);
 
             })
-
+            //On note release
             this.inputDevice.addListener('noteoff', "all", async (e) => {
               //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
               if (this.state.isRecording) {
                 let curPlayerSeq = this.state.curPlayerSeq;
+                //Find the last note in the sequence with the note that was released
                 let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
+                //Set the end time of the note
                 curPlayerSeq.notes[i].endTime = (this.Tone.now()-this.state.curPlayerSeq.startTime);
                 await this.setState({curPlayerSeq: curPlayerSeq});
               }
-
+              //Stop playing the note on the sampler
               this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
             })
           } else {
@@ -123,6 +135,7 @@ class Player extends Component {
     let sessionSeq;
     let noteSequences;
     await this.Tone.start();
+    //Init sessionSeq and noteSequences to be empty
     await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY]});
     console.log('Beginning Session');
 
@@ -130,16 +143,24 @@ class Player extends Component {
     console.log('BAR 1');
     var playerSeq1 = await(this.recordPlayer());
     playerSeq1 = mm.sequences.quantizeNoteSequence(playerSeq1, STEPS_PER_QUARTER);
+    //add player seq 1 to noteSequences
     noteSequences = this.state.noteSequences;
     noteSequences[0] = playerSeq1;
+    //Set session seq to playerSeq1
     await this.setState({sessionSeq: playerSeq1, noteSequences: noteSequences});
 
     //BAR 2: AI
     console.log('BAR 2');
+    //Generate AI sequence 1
     var aiSeq1 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[1]);
+    //combine the note sequences
     sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq1);
+    //add AI seq to noteSequences
     noteSequences[1] = aiSeq1;
+    //Update the state
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    console.log("About to play");
+    //Play the AI seq
     await this.player.start(aiSeq1, this.state.tempo);
     
     //BAR 3: PLAYER
@@ -159,7 +180,8 @@ class Player extends Component {
     await this.player.start(aiSeq2, this.state.tempo);
     console.log('DONE');
   }
-  
+
+  //return a new sequence of notes based off the previous notes and chord
   generateNextSequence(prevNotes, chord) {
     return new Promise(async (resolve, reject)=> {
         let nextSeq = await this.rnn.continueSequence(prevNotes, BAR_LENGTH, this.state.temperature, [chord]);
@@ -169,11 +191,13 @@ class Player extends Component {
   
   recordPlayer() {
     return new Promise (async (resolve, reject) => {
+      //If not already recording
       if(!this.state.isRecording) {
         await this.setState({curPlayerSeq: {notes:[]}});
-
+        //Calculate record time as bar length in seconds
         let recordTime = this.stepsToSeconds(BAR_LENGTH);
 
+        //Schedule the stopping of the recording at recordTime
         this.Tone.Transport.schedule(async (time)=>{
             this.Tone.Transport.stop();
             this.Tone.Transport.cancel(0);
@@ -185,9 +209,12 @@ class Player extends Component {
             await this.setState({isRecording: false, curPlayerSeq: curPlayerSeq});
             
             console.log('Recording Stopped');
+            //Return curPlayerSeq
             resolve(this.state.curPlayerSeq);
         }, recordTime);
         
+        //Print the recording time left to the console
+        //This will be done away with when we have a new visualizer
         this.Tone.Transport.scheduleRepeat((time)=>{
             //use the time argument to schedule a callback with Tone.Draw
             this.Tone.Draw.schedule(() => {
@@ -208,6 +235,7 @@ class Player extends Component {
     });
   }
   
+  //Combines note_seq2 on top of note_seq1
   combineNoteSeqs(note_seq1, note_seq2) {
     let baseStep = note_seq1.totalQuantizedSteps;
     let totalSteps = note_seq1.totalQuantizedSteps + note_seq2.totalQuantizedSteps;
@@ -221,6 +249,7 @@ class Player extends Component {
     return note_seq1
   }
 
+  //Find the last note with the given pitch
   findLastNote(notes, pitch) {
     for (var i = notes.length-1; i >= 0; i--) {
         if (notes[i].pitch === pitch) {
@@ -235,6 +264,7 @@ class Player extends Component {
     return steps * (60/(STEPS_PER_QUARTER*this.state.tempo));
   }
   
+  //Plays the entire recording of the session
   playRecording() {
     this.setState({isPlaying: true}, () => {
       this.player.start(this.state.sessionSeq, this.state.tempo)
