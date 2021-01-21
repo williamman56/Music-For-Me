@@ -4,8 +4,11 @@ import Button from 'react-bootstrap/Button';
 import ValueSelector from './ValueSelector.jsx';
 import Visualizer from './visualizer.jsx';
 
-import {supportedInstruments, chords, EMPTY, BAR_LENGTH} from '../../variables/values.js';
+import {supportedInstruments, chords, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
 import {TWINKLE_TWINKLE} from '../../media/twinkle.js';
+
+import * as Tone from 'tone';
+import WebMidi from '../../../node_modules/webmidi/webmidi.min.js'
 
 const mm = require('@magenta/music/es6/core');
 const mm_rnn = require('@magenta/music/es6/music_rnn');
@@ -21,8 +24,9 @@ class Player extends Component {
       selectedInstrument: supportedInstruments[0],
       selectedChords: [chords[0], chords[1], chords[2], chords[3]],
       
-      noteSequences: [primerSeq, EMPTY, EMPTY, EMPTY],
-      sessionSeq: primerSeq,
+      noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY],
+      sessionSeq: EMPTY,
+      curPlayerSeq: {notes:[]},
       isPlaying: false,
       isRecording: false,
       isInitialized: false,
@@ -36,13 +40,67 @@ class Player extends Component {
     );
 
     this.player = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/salamander');
-    this.Tone = mm.Player.tone;
+
+    this.Tone = Tone;
+    this.sampler = new this.Tone.Sampler({
+      urls: {
+        "C4": "C4.mp3",
+        "D#4": "Ds4.mp3",
+        "F#4": "Fs4.mp3",
+        "A4": "A4.mp3",
+      },
+      release: 1,
+      baseUrl: "https://tonejs.github.io/audio/salamander/",
+    }).toDestination();
     this.player.setTempo(this.state.tempo);
     
     this.onSelectInstrument = this.onSelectInstrument.bind(this);
     this.onSelectChord = this.onSelectChord.bind(this);
     this.prototypeGenerateSequences = this.prototypeGenerateSequences.bind(this);
     this.playRecording = this.playRecording.bind(this);
+    this.findLastNote = this.findLastNote.bind(this);
+    this.stepsToSeconds = this.stepsToSeconds.bind(this);
+
+    this.Tone.start();
+    console.log('audio is ready');
+    WebMidi.enable((err) => {
+      if (err) {
+          console.log('WebMidi could not be enabled.', err);
+      } else {
+          this.inputDevice = WebMidi.inputs[0];
+          if (this.inputDevice) {
+            this.inputDevice.addListener('noteon', "all", async (e) => {
+              //console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
+              if (this.state.isRecording) {
+                let note = {
+                    pitch: e.note.number,
+                    startTime: (this.Tone.now()-this.state.curPlayerSeq.startTime)
+                };
+                let curPlayerSeq = this.state.curPlayerSeq;
+                curPlayerSeq.notes.push(note);
+                await this.setState({curPlayerSeq: curPlayerSeq});
+              }
+
+              this.sampler.triggerAttack([e.note.name + '' + e.note.octave])
+
+            })
+
+            this.inputDevice.addListener('noteoff', "all", async (e) => {
+              //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
+              if (this.state.isRecording) {
+                let curPlayerSeq = this.state.curPlayerSeq;
+                let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
+                curPlayerSeq.notes[i].endTime = (this.Tone.now()-this.state.curPlayerSeq.startTime);
+                await this.setState({curPlayerSeq: curPlayerSeq});
+              }
+
+              this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
+            })
+          } else {
+            console.log('Midi Device could not be detected');
+          }
+      }
+    });
   }
   
   componentDidMount() {
@@ -61,35 +119,45 @@ class Player extends Component {
     this.setState({selectedChords: select_chords});
   }
   
-  prototypeGenerateSequences() {
+  async prototypeGenerateSequences() {
     let sessionSeq;
-    let newNotes;
+    let noteSequences;
+    await this.Tone.start();
+    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY]});
+    console.log('Beginning Session');
+
+    //BAR 1: PLAYER
+    console.log('BAR 1');
+    var playerSeq1 = await(this.recordPlayer());
+    playerSeq1 = mm.sequences.quantizeNoteSequence(playerSeq1, STEPS_PER_QUARTER);
+    noteSequences = this.state.noteSequences;
+    noteSequences[0] = playerSeq1;
+    await this.setState({sessionSeq: playerSeq1, noteSequences: noteSequences});
+
+    //BAR 2: AI
+    console.log('BAR 2');
+    var aiSeq1 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[1]);
+    sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq1);
+    noteSequences[1] = aiSeq1;
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    await this.player.start(aiSeq1, this.state.tempo);
     
-    this.setState({isRecording: true, sessionSeq: primerSeq}, () => {
-      this.generateNextSequence(this.state.noteSequences[0], this.state.selectedChords[1])
-      .then((newSeq) => {
-        sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, newSeq);
-        newNotes = this.state.noteSequences;
-        newNotes[1] = newSeq;
-        this.setState({noteSequences: newNotes, sessionSeq: sessionSeq}, () => {
-          this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[2])
-          .then((newSeq) => {
-            sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, newSeq);
-            newNotes = this.state.noteSequences;
-            newNotes[2] = newSeq;
-            this.setState({noteSequences: newNotes, sessionSeq: sessionSeq}, () => {
-              this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3])
-              .then((newSeq) => {
-                sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, newSeq);
-                newNotes = this.state.noteSequences;
-                newNotes[3] = newSeq;
-                this.setState({noteSequences: newNotes, sessionSeq: sessionSeq});
-              })
-            })
-          })
-        })
-      });
-    });
+    //BAR 3: PLAYER
+    console.log('BAR 3');
+    var playerSeq2 = await(this.recordPlayer());
+    playerSeq2 = mm.sequences.quantizeNoteSequence(playerSeq2, STEPS_PER_QUARTER);
+    noteSequences[2] = playerSeq2;
+    sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, playerSeq2);
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+
+    //BAR 4: AI
+    console.log('BAR 4');
+    var aiSeq2 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3]);
+    sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq2);
+    noteSequences[3] = aiSeq2;
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    await this.player.start(aiSeq2, this.state.tempo);
+    console.log('DONE');
   }
   
   generateNextSequence(prevNotes, chord) {
@@ -97,6 +165,47 @@ class Player extends Component {
         let nextSeq = await this.rnn.continueSequence(prevNotes, BAR_LENGTH, this.state.temperature, [chord]);
         resolve(nextSeq);
     })
+  }
+  
+  recordPlayer() {
+    return new Promise (async (resolve, reject) => {
+      if(!this.state.isRecording) {
+        await this.setState({curPlayerSeq: {notes:[]}});
+
+        let recordTime = this.stepsToSeconds(BAR_LENGTH);
+
+        this.Tone.Transport.schedule(async (time)=>{
+            this.Tone.Transport.stop();
+            this.Tone.Transport.cancel(0);
+            let endTime = time;
+            //Operate on dummy var
+            let curPlayerSeq = this.state.curPlayerSeq;
+            curPlayerSeq.totalTime = endTime - this.state.curPlayerSeq.startTime;
+
+            await this.setState({isRecording: false, curPlayerSeq: curPlayerSeq});
+            
+            console.log('Recording Stopped');
+            resolve(this.state.curPlayerSeq);
+        }, recordTime);
+        
+        this.Tone.Transport.scheduleRepeat((time)=>{
+            //use the time argument to schedule a callback with Tone.Draw
+            this.Tone.Draw.schedule(() => {
+                console.log((recordTime - this.Tone.Transport.seconds).toFixed(2));
+            }, time)
+        }, 0.1, 0, recordTime);
+        //Operate on dummy var
+        let curPlayerSeq = this.state.curPlayerSeq;
+        curPlayerSeq.startTime = this.Tone.now();
+        await this.setState({isRecording: true, curPlayerSeq: curPlayerSeq});
+
+        this.Tone.Transport.start();
+        console.log('Recording Started');
+      } else {
+        console.log('Already Recording');
+        reject(EMPTY);
+      }
+    });
   }
   
   combineNoteSeqs(note_seq1, note_seq2) {
@@ -110,6 +219,20 @@ class Player extends Component {
     }
     note_seq1.totalQuantizedSteps = totalSteps;
     return note_seq1
+  }
+
+  findLastNote(notes, pitch) {
+    for (var i = notes.length-1; i >= 0; i--) {
+        if (notes[i].pitch === pitch) {
+            return i;
+        }
+    }
+    return -1;
+  }
+
+  //Given steps, returns how long in seconds the number of steps are
+  stepsToSeconds(steps) {
+    return steps * (60/(STEPS_PER_QUARTER*this.state.tempo));
   }
   
   playRecording() {
