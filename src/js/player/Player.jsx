@@ -30,12 +30,14 @@ class Player extends Component {
       sessionSeq: EMPTY,
       //The players current playing notes. Resets every player turn
       curPlayerSeq: {notes:[]},
+      curAISeq: null,
       isPlaying: false,
       isRecording: false,
       isInitialized: false,
       currentNote: null,
       temperature: 1.1,
       tempo: 150,
+      barCount: 0
     }
     
     this.rnn = new mm_rnn.MusicRNN(
@@ -139,7 +141,7 @@ class Player extends Component {
     let noteSequences;
     await this.Tone.start();
     //Init sessionSeq and noteSequences to be empty
-    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY]});
+    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0});
     console.log('Beginning Session');
 
     //BAR 1: PLAYER
@@ -150,7 +152,7 @@ class Player extends Component {
     noteSequences = this.state.noteSequences;
     noteSequences[0] = playerSeq1;
     //Set session seq to playerSeq1
-    await this.setState({sessionSeq: playerSeq1, noteSequences: noteSequences});
+    await this.setState({sessionSeq: playerSeq1, noteSequences: noteSequences, barCount: this.state.barCount+1});
 
     //BAR 2: AI
     console.log('BAR 2');
@@ -161,7 +163,7 @@ class Player extends Component {
     //add AI seq to noteSequences
     noteSequences[1] = aiSeq1;
     //Update the state
-    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq1, barCount: this.state.barCount+1});
     console.log("About to play");
     //Play the AI seq
     await this.playNoteSeq(aiSeq1);
@@ -172,14 +174,14 @@ class Player extends Component {
     playerSeq2 = mm.sequences.quantizeNoteSequence(playerSeq2, STEPS_PER_QUARTER);
     noteSequences[2] = playerSeq2;
     sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, playerSeq2);
-    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
 
     //BAR 4: AI
     console.log('BAR 4');
     var aiSeq2 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3]);
     sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq2);
     noteSequences[3] = aiSeq2;
-    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
+    await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq2, barCount: this.state.barCount+1});
     await this.player.start(aiSeq2, this.state.tempo);
     console.log('DONE');
   }
@@ -212,6 +214,7 @@ class Player extends Component {
             await this.setState({isRecording: false, curPlayerSeq: curPlayerSeq});
             
             console.log('Recording Stopped');
+            //console.log(curPlayerSeq)
             //Return curPlayerSeq
             resolve(this.state.curPlayerSeq);
         }, recordTime);
@@ -242,7 +245,6 @@ class Player extends Component {
     return new Promise( (resolve, reject) => {
       this.Tone.Transport.stop();
       this.Tone.Transport.cancel(0);
-      console.log(noteSeq);
       this.Tone.Transport.schedule((time) => {
         this.Tone.Transport.stop();
         this.Tone.Transport.cancel(0);
@@ -331,7 +333,13 @@ class Player extends Component {
             <i className="fas fa-play" />
           </Button>
         </div>
-        <PianoRoll currentNote={this.state.currentNote} />
+        <PianoRoll 
+          currentNote={this.state.currentNote} 
+          barTime={this.stepsToSeconds(BAR_LENGTH)} 
+          isRecording={this.state.isRecording} 
+          barCount={this.state.barCount}
+          aiSeq={this.state.curAISeq} 
+          stepsToSeconds={this.stepsToSeconds} />
       </div>
     )
   }

@@ -28,7 +28,6 @@ class Visualizer extends Component {
   
   properlyPosition() {
     //For some reason replacing the SVG causes all the notes to be off the canvas, so this puts them back in place
-    let counter = 0;
     let offset = this.svgRef.current.children[0].getAttribute('x');
     for (let child of this.svgRef.current.children) {
       child.setAttribute('x', child.getAttribute('x') - offset);
