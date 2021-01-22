@@ -3,6 +3,7 @@ import Button from 'react-bootstrap/Button';
 
 import ValueSelector from './ValueSelector.jsx';
 import Visualizer from './visualizer.jsx';
+import PianoRoll from './PianoRoll.jsx';
 
 import {supportedInstruments, chords, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
 import {TWINKLE_TWINKLE} from '../../media/twinkle.js';
@@ -32,7 +33,7 @@ class Player extends Component {
       isPlaying: false,
       isRecording: false,
       isInitialized: false,
-      
+      currentNote: null,
       temperature: 1.1,
       tempo: 150,
     }
@@ -78,6 +79,7 @@ class Player extends Component {
             //On note press
             this.inputDevice.addListener('noteon', "all", async (e) => {
               //console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
+              //console.log(e);
               if (this.state.isRecording) {
                 //Construct the note object
                 let note = {
@@ -104,7 +106,7 @@ class Player extends Component {
                 let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
                 //Set the end time of the note
                 curPlayerSeq.notes[i].endTime = (this.Tone.now()-this.state.curPlayerSeq.startTime);
-                await this.setState({curPlayerSeq: curPlayerSeq});
+                await this.setState({curPlayerSeq: curPlayerSeq, currentNote: curPlayerSeq.notes[i]});
               }
               //Stop playing the note on the sampler
               this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
@@ -329,6 +331,7 @@ class Player extends Component {
             <i className="fas fa-play" />
           </Button>
         </div>
+        <PianoRoll currentNote={this.state.currentNote} />
       </div>
     )
   }
