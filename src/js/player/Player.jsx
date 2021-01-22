@@ -54,6 +54,7 @@ class Player extends Component {
       release: 1,
       baseUrl: "https://tonejs.github.io/audio/salamander/",
     }).toDestination();
+    this.Tone.Transport.bpm.value = this.state.tempo;
     this.player.setTempo(this.state.tempo);
     
     this.onSelectInstrument = this.onSelectInstrument.bind(this);
@@ -161,7 +162,7 @@ class Player extends Component {
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences});
     console.log("About to play");
     //Play the AI seq
-    await this.player.start(aiSeq1, this.state.tempo);
+    await this.playNoteSeq(aiSeq1);
     
     //BAR 3: PLAYER
     console.log('BAR 3');
@@ -233,6 +234,28 @@ class Player extends Component {
         reject(EMPTY);
       }
     });
+  }
+
+  playNoteSeq(noteSeq) {
+    return new Promise( (resolve, reject) => {
+      this.Tone.Transport.stop();
+      this.Tone.Transport.cancel(0);
+      console.log(noteSeq);
+      this.Tone.Transport.schedule((time) => {
+        this.Tone.Transport.stop();
+        this.Tone.Transport.cancel(0);
+        resolve();
+      }, this.stepsToSeconds(noteSeq.totalQuantizedSteps));
+      noteSeq.notes.forEach( (note) => {
+        
+        let duration = this.stepsToSeconds(note.quantizedEndStep - note.quantizedStartStep);
+        this.Tone.Transport.schedule((time)=>{
+          console.log('Playing note');
+          this.sampler.triggerAttackRelease([note.pitch], duration,time);
+        }, this.stepsToSeconds(note.quantizedStartStep));
+      });
+      this.Tone.Transport.start();
+    })
   }
   
   //Combines note_seq2 on top of note_seq1
