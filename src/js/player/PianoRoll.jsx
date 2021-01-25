@@ -8,6 +8,9 @@ class PianoRoll extends Component {
       bars: []
     }
     
+    this.height = window.innerHeight * .25;
+    this.width = window.innerWidth * .8;
+
     this.barModifier = 50//Controls length of bars on the piano roll
     
     this.svgRef = React.createRef();
@@ -28,8 +31,9 @@ class PianoRoll extends Component {
   
   startBar() {
     let that = this
-    let totalTime = this.props.barTime*1000, iTime = 50, iNum = totalTime / iTime
-    let moveLength = 1.0*this.props.barTime*this.barModifier/iNum
+    let totalTime = this.props.barTime*1000, iTime = 50, iNum = totalTime / iTime;
+    let percent = this.props.Transport.seconds / this.stepsToSeconds(this.props.barTime*4);
+    /*let moveLength = 1.0*this.props.barTime*this.barModifier/iNum;
     let movement = setInterval(function(){
       that.barRef.current.setAttribute("x", parseFloat(that.barRef.current.getAttribute("x")) + moveLength)
     }, iTime)
@@ -37,7 +41,8 @@ class PianoRoll extends Component {
     setTimeout(function(){
       //console.log("done")
       clearInterval(movement)
-    }, totalTime)
+    }, totalTime)*/
+    that.barRef.current.setAttribute("x", this.width*percent);
   }
   
   drawNote(note, aiNote=false) {
@@ -99,16 +104,15 @@ class PianoRoll extends Component {
   }
   
   render() {
-    let h = window.innerHeight * .25
-    let w = window.innerWidth * .8
+    
     return (
       <div>
-        <svg ref={this.svgRef} height={h} width={w} >
-          <rect height={h} width={w} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
+        <svg ref={this.svgRef} height={this.h} width={this.w} >
+          <rect height={this.height} width={this.width} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
           {this.state.bars.map(function(b,i){
             return b
           })}
-          <rect height={h} width="3" ref={this.barRef} x="0" />
+          <rect height={this.h} width="3" ref={this.barRef} x="0" />
         </svg>
       </div>
     )
