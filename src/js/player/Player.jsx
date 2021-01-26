@@ -66,6 +66,7 @@ class Player extends Component {
     this.playRecording = this.playRecording.bind(this);
     this.findLastNote = this.findLastNote.bind(this);
     this.stepsToSeconds = this.stepsToSeconds.bind(this);
+    this.playNote = this.playNote.bind(this);
 
     this.Tone.start();
     console.log('audio is ready');
@@ -166,7 +167,7 @@ class Player extends Component {
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq1, barCount: this.state.barCount+1});
     console.log("About to play");
     //Play the AI seq
-    await this.playNoteSeq(aiSeq1);
+    //await this.playNoteSeq(aiSeq1);
     
     //BAR 3: PLAYER
     console.log('BAR 3');
@@ -182,8 +183,9 @@ class Player extends Component {
     sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq2);
     noteSequences[3] = aiSeq2;
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq2, barCount: this.state.barCount+1});
-    await this.player.start(aiSeq2, this.state.tempo);
+    //await this.player.start(aiSeq2, this.state.tempo);
     console.log('DONE');
+
   }
 
   //return a new sequence of notes based off the previous notes and chord
@@ -204,7 +206,7 @@ class Player extends Component {
 
         //Schedule the stopping of the recording at recordTime
         this.Tone.Transport.schedule(async (time)=>{
-            this.Tone.Transport.stop();
+            this.Tone.Transport.pause();
             this.Tone.Transport.cancel(0);
             let endTime = time;
             //Operate on dummy var
@@ -241,25 +243,10 @@ class Player extends Component {
     });
   }
 
-  playNoteSeq(noteSeq) {
-    return new Promise( (resolve, reject) => {
-      this.Tone.Transport.stop();
-      this.Tone.Transport.cancel(0);
-      this.Tone.Transport.schedule((time) => {
-        this.Tone.Transport.stop();
-        this.Tone.Transport.cancel(0);
-        resolve();
-      }, this.stepsToSeconds(noteSeq.totalQuantizedSteps));
-      noteSeq.notes.forEach( (note) => {
-        
-        let duration = this.stepsToSeconds(note.quantizedEndStep - note.quantizedStartStep);
-        this.Tone.Transport.schedule((time)=>{
-          console.log('Playing note');
-          this.sampler.triggerAttackRelease([note.pitch], duration,time);
-        }, this.stepsToSeconds(note.quantizedStartStep));
-      });
-      this.Tone.Transport.start();
-    })
+  playNote(note) {
+    let duration = this.stepsToSeconds(note.quantizedEndStep - note.quantizedStartStep);
+    let pitch = this.Tone.Midi(note.pitch).toNote();
+    this.sampler.triggerAttackRelease(pitch, duration, this.Tone.now());
   }
   
   //Combines note_seq2 on top of note_seq1
@@ -339,6 +326,8 @@ class Player extends Component {
           isRecording={this.state.isRecording} 
           barCount={this.state.barCount}
           aiSeq={this.state.curAISeq} 
+          playNote={this.playNote}
+          transport={this.Tone.Transport}
           stepsToSeconds={this.stepsToSeconds} />
       </div>
     )

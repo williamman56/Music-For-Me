@@ -1,5 +1,7 @@
 import React, {Component} from 'react'
 
+import PianoBar from './PianoBar.jsx';
+
 class PianoRoll extends Component {
   constructor(props){
     super(props)
@@ -8,28 +10,39 @@ class PianoRoll extends Component {
       bars: []
     }
     
+    this.height = window.innerHeight * .25;
+    this.width = window.innerWidth * .8;
+
     this.barModifier = 50//Controls length of bars on the piano roll
     
     this.svgRef = React.createRef();
     this.barRef = React.createRef();
   }
 
+  componentDidMount() {
+    console.log("BAR TIME:" + this.props.barTime);
+  }
+
   componentDidUpdate(prevProps, prevState) {
+    //console.log("BIG CAPS:" + this.width * this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4));
+    //console.log("BIG CAPS:" + this.props.elapsedTime);
     if (this.props.currentNote !== prevProps.currentNote) {
       this.drawNote(this.props.currentNote)
     }
     if (this.props.aiSeq !== prevProps.aiSeq) {
       this.drawNoteSequence(this.props.aiSeq)
     }
-    if (this.props.isRecording && !prevProps.isRecording) {
-      this.startBar()
+    if (this.props.elapsedTime !== prevProps.elapsedTime) {
+      //console.log("ELAPSED TIME: " + this.props.elapsedTime);
     }
   }
   
   startBar() {
     let that = this
-    let totalTime = this.props.barTime*1000, iTime = 50, iNum = totalTime / iTime
-    let moveLength = 1.0*this.props.barTime*this.barModifier/iNum
+    console.log(this.props.elapsedTime);
+    let totalTime = this.props.barTime*1000, iTime = 50, iNum = totalTime / iTime;
+    let percent = this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4);
+    /*let moveLength = 1.0*this.props.barTime*this.barModifier/iNum;
     let movement = setInterval(function(){
       that.barRef.current.setAttribute("x", parseFloat(that.barRef.current.getAttribute("x")) + moveLength)
     }, iTime)
@@ -37,17 +50,19 @@ class PianoRoll extends Component {
     setTimeout(function(){
       //console.log("done")
       clearInterval(movement)
-    }, totalTime)
+    }, totalTime)*/
+    console.log(percent);
+    //that.barRef.current.setAttribute("x", this.width*percent);
   }
   
   drawNote(note, aiNote=false) {
     //console.log(note)
-    let pitch = this.scalePitch(note.pitch), m = this.barModifier
-    let w = note.endTime*m - note.startTime*m
+    let pitch = this.scalePitch(note.pitch), m = this.barModifier;
+    let w = note.endTime*m - note.startTime*m;
     //RecordPlayer starts time from 0, so we need a multiplier
     //AI sequences keep track of their overall start time so we don't to modify them
     let multiplier = aiNote ? 0 : this.props.barCount*m*this.props.barTime
-    let bar = React.createElement('rect', {x:note.startTime*m+multiplier, 
+    let bar = React.createElement('rect', {x:this.width * (this.props.transport.seconds / (this.props.barTime*4)), 
                                             y:pitch, 
                                             height:10, 
                                             width:w, 
@@ -80,7 +95,7 @@ class PianoRoll extends Component {
       //console.log(n)
       this.drawNote(n, true)
     }*/
-    this.barRef.current.setAttribute("x", parseFloat(this.barRef.current.getAttribute("x")) + this.props.barTime*this.barModifier)
+    //this.barRef.current.setAttribute("x", parseFloat(this.barRef.current.getAttribute("x")) + this.props.barTime*this.barModifier)
   }
   
   scalePitch(pitch) {
@@ -99,16 +114,21 @@ class PianoRoll extends Component {
   }
   
   render() {
-    let h = window.innerHeight * .25
-    let w = window.innerWidth * .8
+    
     return (
       <div>
-        <svg ref={this.svgRef} height={h} width={w} >
-          <rect height={h} width={w} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
+        <svg ref={this.svgRef} height={this.height} width={this.width} >
+          <rect height={this.height} width={this.width} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
           {this.state.bars.map(function(b,i){
             return b
           })}
-          <rect height={h} width="3" ref={this.barRef} x="0" />
+          <PianoBar 
+            height={this.height} 
+            width={this.width} 
+            transport={this.props.transport} 
+            stepsToSeconds={this.props.stepsToSeconds}
+            barTime={this.props.barTime} 
+            barModifier={this.barModifier} />
         </svg>
       </div>
     )
