@@ -17,22 +17,33 @@ class PianoRoll extends Component {
     this.barRef = React.createRef();
   }
 
+  componentDidMount() {
+    setInterval(() => {
+        this.setState(() => {
+            console.log('setting state');
+            return { unseen: "does not display" }
+        });
+    }, 200);
+  }
+
   componentDidUpdate(prevProps, prevState) {
+    console.log(this.width * this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4));
     if (this.props.currentNote !== prevProps.currentNote) {
       this.drawNote(this.props.currentNote)
     }
     if (this.props.aiSeq !== prevProps.aiSeq) {
       this.drawNoteSequence(this.props.aiSeq)
     }
-    if (this.props.isRecording && !prevProps.isRecording) {
-      this.startBar()
+    if (this.props.elapsedTime !== prevProps.elapsedTime) {
+      //this.startBar()
     }
   }
   
   startBar() {
     let that = this
+    console.log(this.props.elapsedTime);
     let totalTime = this.props.barTime*1000, iTime = 50, iNum = totalTime / iTime;
-    let percent = this.props.Transport.seconds / this.stepsToSeconds(this.props.barTime*4);
+    let percent = this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4);
     /*let moveLength = 1.0*this.props.barTime*this.barModifier/iNum;
     let movement = setInterval(function(){
       that.barRef.current.setAttribute("x", parseFloat(that.barRef.current.getAttribute("x")) + moveLength)
@@ -42,6 +53,7 @@ class PianoRoll extends Component {
       //console.log("done")
       clearInterval(movement)
     }, totalTime)*/
+    console.log(percent);
     that.barRef.current.setAttribute("x", this.width*percent);
   }
   
@@ -107,12 +119,12 @@ class PianoRoll extends Component {
     
     return (
       <div>
-        <svg ref={this.svgRef} height={this.h} width={this.w} >
+        <svg ref={this.svgRef} height={this.height} width={this.width} >
           <rect height={this.height} width={this.width} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
           {this.state.bars.map(function(b,i){
             return b
           })}
-          <rect height={this.h} width="3" ref={this.barRef} x="0" />
+          <rect height={this.height} width="3" key={this.props.elapsedTime} ref={this.barRef} x={this.width * this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4)} />
         </svg>
       </div>
     )

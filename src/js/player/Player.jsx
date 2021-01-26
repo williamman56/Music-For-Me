@@ -167,7 +167,7 @@ class Player extends Component {
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq1, barCount: this.state.barCount+1});
     console.log("About to play");
     //Play the AI seq
-    await this.playNoteSeq(aiSeq1);
+    //await this.playNoteSeq(aiSeq1);
     
     //BAR 3: PLAYER
     console.log('BAR 3');
@@ -183,8 +183,9 @@ class Player extends Component {
     sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq2);
     noteSequences[3] = aiSeq2;
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq2, barCount: this.state.barCount+1});
-    await this.player.start(aiSeq2, this.state.tempo);
+    //await this.player.start(aiSeq2, this.state.tempo);
     console.log('DONE');
+
   }
 
   //return a new sequence of notes based off the previous notes and chord
@@ -205,7 +206,7 @@ class Player extends Component {
 
         //Schedule the stopping of the recording at recordTime
         this.Tone.Transport.schedule(async (time)=>{
-            this.Tone.Transport.stop();
+            this.Tone.Transport.pause();
             this.Tone.Transport.cancel(0);
             let endTime = time;
             //Operate on dummy var
@@ -326,7 +327,7 @@ class Player extends Component {
           barCount={this.state.barCount}
           aiSeq={this.state.curAISeq} 
           playNote={this.playNote}
-          Transport={this.Tone.Transport}
+          elapsedTime={this.Tone.Transport.seconds}
           stepsToSeconds={this.stepsToSeconds} />
       </div>
     )
