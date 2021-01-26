@@ -327,7 +327,7 @@ class Player extends Component {
           barCount={this.state.barCount}
           aiSeq={this.state.curAISeq} 
           playNote={this.playNote}
-          elapsedTime={this.Tone.Transport.seconds}
+          transport={this.Tone.Transport}
           stepsToSeconds={this.stepsToSeconds} />
       </div>
     )

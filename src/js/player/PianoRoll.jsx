@@ -1,5 +1,7 @@
 import React, {Component} from 'react'
 
+import PianoBar from './PianoBar.jsx';
+
 class PianoRoll extends Component {
   constructor(props){
     super(props)
@@ -18,16 +20,17 @@ class PianoRoll extends Component {
   }
 
   componentDidMount() {
-    setInterval(() => {
+    /*setInterval(() => {
         this.setState(() => {
             console.log('setting state');
             return { unseen: "does not display" }
         });
-    }, 200);
+    }, 200);*/
   }
 
   componentDidUpdate(prevProps, prevState) {
-    console.log(this.width * this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4));
+    //console.log("BIG CAPS:" + this.width * this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4));
+    //console.log("BIG CAPS:" + this.props.elapsedTime);
     if (this.props.currentNote !== prevProps.currentNote) {
       this.drawNote(this.props.currentNote)
     }
@@ -35,7 +38,7 @@ class PianoRoll extends Component {
       this.drawNoteSequence(this.props.aiSeq)
     }
     if (this.props.elapsedTime !== prevProps.elapsedTime) {
-      //this.startBar()
+      //console.log("ELAPSED TIME: " + this.props.elapsedTime);
     }
   }
   
@@ -54,7 +57,7 @@ class PianoRoll extends Component {
       clearInterval(movement)
     }, totalTime)*/
     console.log(percent);
-    that.barRef.current.setAttribute("x", this.width*percent);
+    //that.barRef.current.setAttribute("x", this.width*percent);
   }
   
   drawNote(note, aiNote=false) {
@@ -97,7 +100,7 @@ class PianoRoll extends Component {
       //console.log(n)
       this.drawNote(n, true)
     }*/
-    this.barRef.current.setAttribute("x", parseFloat(this.barRef.current.getAttribute("x")) + this.props.barTime*this.barModifier)
+    //this.barRef.current.setAttribute("x", parseFloat(this.barRef.current.getAttribute("x")) + this.props.barTime*this.barModifier)
   }
   
   scalePitch(pitch) {
@@ -124,7 +127,13 @@ class PianoRoll extends Component {
           {this.state.bars.map(function(b,i){
             return b
           })}
-          <rect height={this.height} width="3" key={this.props.elapsedTime} ref={this.barRef} x={this.width * this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4)} />
+          <PianoBar 
+            height={this.height} 
+            width="3" 
+            transport={this.props.transport} 
+            stepsToSeconds={this.props.stepsToSeconds}
+            barTime={this.props.barTime} 
+            barModifier={this.barModifier} />
         </svg>
       </div>
     )
