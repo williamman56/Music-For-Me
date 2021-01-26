@@ -20,12 +20,7 @@ class PianoRoll extends Component {
   }
 
   componentDidMount() {
-    /*setInterval(() => {
-        this.setState(() => {
-            console.log('setting state');
-            return { unseen: "does not display" }
-        });
-    }, 200);*/
+    console.log("BAR TIME:" + this.props.barTime);
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -62,12 +57,12 @@ class PianoRoll extends Component {
   
   drawNote(note, aiNote=false) {
     //console.log(note)
-    let pitch = this.scalePitch(note.pitch), m = this.barModifier
-    let w = note.endTime*m - note.startTime*m
+    let pitch = this.scalePitch(note.pitch), m = this.barModifier;
+    let w = note.endTime*m - note.startTime*m;
     //RecordPlayer starts time from 0, so we need a multiplier
     //AI sequences keep track of their overall start time so we don't to modify them
     let multiplier = aiNote ? 0 : this.props.barCount*m*this.props.barTime
-    let bar = React.createElement('rect', {x:note.startTime*m+multiplier, 
+    let bar = React.createElement('rect', {x:this.width * (this.props.transport.seconds / (this.props.barTime*4)), 
                                             y:pitch, 
                                             height:10, 
                                             width:w, 
@@ -129,7 +124,7 @@ class PianoRoll extends Component {
           })}
           <PianoBar 
             height={this.height} 
-            width="3" 
+            width={this.width} 
             transport={this.props.transport} 
             stepsToSeconds={this.props.stepsToSeconds}
             barTime={this.props.barTime} 

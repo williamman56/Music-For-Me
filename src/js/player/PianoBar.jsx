@@ -20,21 +20,19 @@ class PianoBar extends Component {
   startBar(){
     let that = this;
     this.movement = setInterval(function() {
-      console.log(that)
       that.setState({elapsedTime: that.props.transport.seconds})
     }, 50)
   }
   
   
   render() {
-    console.log(this.props.width);
-    console.log(this.state.elapsedTime)
-    console.log(this.props.stepsToSeconds(this.props.barTime*4))
+    console.log(this.state.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4))
+    console.log(this.props.stepsToSeconds(this.props.barTime))
     return <rect 
               height={this.props.height} 
               width="3" 
               key="bar" 
-              x={this.props.barModifier * this.props.width * this.state.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4)} 
+              x={this.props.width * (this.state.elapsedTime / (this.props.barTime*4))} 
             />
   }
 }
