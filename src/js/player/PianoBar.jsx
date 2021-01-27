@@ -26,8 +26,7 @@ class PianoBar extends Component {
   
   
   render() {
-    console.log(this.state.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4))
-    console.log(this.props.stepsToSeconds(this.props.barTime))
+    console.log(this.state.elapsedTime / (this.props.barTime*4))
     return <rect 
               height={this.props.height} 
               width="3" 
