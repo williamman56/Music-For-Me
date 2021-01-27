@@ -66,7 +66,7 @@ class Player extends Component {
     this.playRecording = this.playRecording.bind(this);
     this.findLastNote = this.findLastNote.bind(this);
     this.stepsToSeconds = this.stepsToSeconds.bind(this);
-    this.playNote = this.playNote.bind(this);
+    this.scheduleNotes = this.scheduleNotes.bind(this);
 
     this.Tone.start();
     console.log('audio is ready');
@@ -169,6 +169,7 @@ class Player extends Component {
     console.log(aiSeq1);
     //Play the AI seq
     this.scheduleNotes(aiSeq1);
+    this.Tone.Transport.start();
 
     /*
     //BAR 3: PLAYER
@@ -240,16 +241,13 @@ class Player extends Component {
   scheduleNotes(notes) {
     notes = mm.sequences.unquantizeSequence(notes, this.state.tempo);
     console.log(notes)
-    let curPos = this.Tone.Transport.seconds;
     notes.notes.forEach( (note) => {
-      this.Tone.Transport.schedule(this.playNote(note), )
+      this.Tone.Transport.schedule((time)=> {
+        let duration = note.endTime - note.startTime;
+        let pitch = this.Tone.Midi(note.pitch).toNote();
+        this.sampler.triggerAttackRelease(pitch, duration, time);
+      }, note.startTime);
     });
-  }
-
-  playNote(note) {
-    let duration = this.stepsToSeconds(note.quantizedEndStep - note.quantizedStartStep);
-    let pitch = this.Tone.Midi(note.pitch).toNote();
-    this.sampler.triggerAttackRelease(pitch, duration, this.Tone.now());
   }
   
   //Combines note_seq2 on top of note_seq1
@@ -283,6 +281,7 @@ class Player extends Component {
   
   //Plays the entire recording of the session
   playRecording() {
+    this.Tone.Transport.stop();
     this.setState({isPlaying: true}, () => {
       this.player.start(this.state.sessionSeq, this.state.tempo)
       .then(() => {
