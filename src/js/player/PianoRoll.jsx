@@ -45,7 +45,7 @@ class PianoRoll extends Component {
     if (aiNote) {
       x = this.width * (note.startTime / (this.props.barTime*4));
     } else {
-      x = this.width * (this.props.transport.seconds / (this.props.barTime*4));
+      x = this.width * (this.props.transport.seconds / (this.props.barTime*4)) - w;
     }
     let bar = React.createElement('rect', {x:x, 
                                             y:pitch, 

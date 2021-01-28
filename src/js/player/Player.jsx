@@ -189,8 +189,8 @@ class Player extends Component {
     //await this.player.start(aiSeq2, this.state.tempo);
     console.log('DONE');
 
-    */
-
+  
+*/
   }
 
   //return a new sequence of notes based off the previous notes and chord
@@ -248,6 +248,9 @@ class Player extends Component {
         this.sampler.triggerAttackRelease(pitch, duration, time);
       }, note.startTime);
     });
+    this.Tone.Transport.schedule((time) => {
+      this.Tone.Transport.pause();
+    }, notes.totalTime);
   }
   
   //Combines note_seq2 on top of note_seq1
