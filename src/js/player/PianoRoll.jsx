@@ -30,12 +30,14 @@ class PianoRoll extends Component {
       this.drawNote(this.props.currentNote)
     }
     if (this.props.aiSeq !== prevProps.aiSeq) {
+      console.log("AI SEQ")
+      console.log(this.props.aiSeq)
       this.drawNoteSequence(this.props.aiSeq)
     }
   }
   
   drawNote(note, aiNote=false) {
-    //console.log(note)
+    console.log(note)
     let pitch = this.scalePitch(note.pitch), m = this.barModifier;
     let w = note.endTime*m - note.startTime*m;
     //RecordPlayer starts time from 0, so we need a multiplier
@@ -66,21 +68,12 @@ class PianoRoll extends Component {
         }
       that.drawNote(n, true)
       
-      counter++
+      counter++;
       if (counter >= noteSequence.notes.length) {
         clearInterval(drawer)
       }
     }, 5)
-    /*for (const note of noteSequence.notes) {
-      //console.log(note)
-      let n = {pitch: note.pitch, 
-               startTime: this.props.stepsToSeconds(note.quantizedStartStep),
-               endTime: this.props.stepsToSeconds(note.quantizedEndStep)
-              }
-      //console.log(n)
-      this.drawNote(n, true)
-    }*/
-   }
+  }
   
   scalePitch(pitch) {
     //Scale from 53 to 83 (based off lowest & highest notes on my midi keyboard)

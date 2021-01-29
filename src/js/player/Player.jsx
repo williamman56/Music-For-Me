@@ -14,7 +14,7 @@ import WebMidi from '../../../node_modules/webmidi/webmidi.min.js'
 const mm = require('@magenta/music/es6/core');
 const mm_rnn = require('@magenta/music/es6/music_rnn');
 
-const primerSeq = mm.sequences.quantizeNoteSequence(TWINKLE_TWINKLE, 1);
+//const primerSeq = mm.sequences.quantizeNoteSequence(TWINKLE_TWINKLE, 1);
 
 class Player extends Component {
   constructor(props){
@@ -66,7 +66,7 @@ class Player extends Component {
     this.playRecording = this.playRecording.bind(this);
     this.findLastNote = this.findLastNote.bind(this);
     this.stepsToSeconds = this.stepsToSeconds.bind(this);
-    this.scheduleNotes = this.scheduleNotes.bind(this);
+    this.playNotes = this.playNotes.bind(this);
 
     this.Tone.start();
     console.log('audio is ready');
@@ -148,8 +148,9 @@ class Player extends Component {
     //BAR 1: PLAYER
     console.log('BAR 1');
     var playerSeq1 = await(this.recordPlayer());
-    console.log(playerSeq1);
     playerSeq1 = mm.sequences.quantizeNoteSequence(playerSeq1, STEPS_PER_QUARTER);
+    console.log(playerSeq1);
+
     //add player seq 1 to noteSequences
     noteSequences = this.state.noteSequences;
     noteSequences[0] = playerSeq1;
@@ -166,31 +167,41 @@ class Player extends Component {
     noteSequences[1] = aiSeq1;
     //Update the state
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq1, barCount: this.state.barCount+1});
-    console.log(aiSeq1);
+    //console.log(aiSeq1);
     //Play the AI seq
-    this.scheduleNotes(aiSeq1);
-    this.Tone.Transport.start();
+    await this.playNotes(aiSeq1);
+    
 
-    /*
     //BAR 3: PLAYER
     console.log('BAR 3');
     var playerSeq2 = await(this.recordPlayer());
+    playerSeq2.tempos = [{qpm:120, time:0}];
     playerSeq2 = mm.sequences.quantizeNoteSequence(playerSeq2, STEPS_PER_QUARTER);
+    //OKAY some absolute witchcraft here but quantizeNoteSequence was computing the steps 2*BAR_LENGTH away from what they were supposed to be
+    for (var i = 0; i < playerSeq2.notes.length; i++) {
+      playerSeq2.notes[i].quantizedStartStep -= (2*BAR_LENGTH);
+      playerSeq2.notes[i].quantizedEndStep -= (2*BAR_LENGTH);
+    }
+    console.log(playerSeq2)
     noteSequences[2] = playerSeq2;
     sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, playerSeq2);
+    console.log(sessionSeq)
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
 
     //BAR 4: AI
     console.log('BAR 4');
     var aiSeq2 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3]);
+    //Same issue here as above
+    for (var i = 0; i < aiSeq2.notes.length; i++) {
+      aiSeq2.notes[i].quantizedStartStep -= (2*BAR_LENGTH);
+      aiSeq2.notes[i].quantizedEndStep -= (2*BAR_LENGTH);
+    }
     sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq2);
     noteSequences[3] = aiSeq2;
     await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq2, barCount: this.state.barCount+1});
-    //await this.player.start(aiSeq2, this.state.tempo);
+    await this.playNotes(aiSeq2);
     console.log('DONE');
-
-  
-*/
+    this.Tone.Transport.pause()
   }
 
   //return a new sequence of notes based off the previous notes and chord
@@ -224,7 +235,7 @@ class Player extends Component {
             //console.log(curPlayerSeq)
             //Return curPlayerSeq
             resolve(this.state.curPlayerSeq);
-        }, recordTime);
+        }, this.Tone.Transport.seconds + recordTime);
         
         //curPlayerSeq.startTime = this.Tone.now();
         await this.setState({isRecording: true});
@@ -238,19 +249,23 @@ class Player extends Component {
     });
   }
 
-  scheduleNotes(notes) {
-    notes = mm.sequences.unquantizeSequence(notes, this.state.tempo);
-    console.log(notes)
-    notes.notes.forEach( (note) => {
-      this.Tone.Transport.schedule((time)=> {
-        let duration = note.endTime - note.startTime;
-        let pitch = this.Tone.Midi(note.pitch).toNote();
-        this.sampler.triggerAttackRelease(pitch, duration, time);
-      }, note.startTime);
-    });
-    this.Tone.Transport.schedule((time) => {
-      this.Tone.Transport.pause();
-    }, notes.totalTime);
+  playNotes(notes) {
+    return new Promise( (resolve, reject) => {
+      notes = mm.sequences.unquantizeSequence(notes, this.state.tempo);
+      console.log(notes)
+      notes.notes.forEach( (note) => {
+        this.Tone.Transport.schedule((time)=> {
+          let duration = note.endTime - note.startTime;
+          let pitch = this.Tone.Midi(note.pitch).toNote();
+          this.sampler.triggerAttackRelease(pitch, duration, time);
+        }, note.startTime);
+      });
+      this.Tone.Transport.schedule((time) => {
+        this.Tone.Transport.pause();
+        setTimeout(()=> { resolve(); }, 500);
+      }, notes.totalTime);
+      this.Tone.Transport.start();
+    }) 
   }
   
   //Combines note_seq2 on top of note_seq1

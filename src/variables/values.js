@@ -1,7 +1,7 @@
 export const supportedInstruments = ['Piano', 'Guitar', 'Mayonnaise']
 
 export const chords = ['C', 'Am', 'F', 'G']
-export const BAR_LENGTH = 50;
+export const BAR_LENGTH = 40;
 export const STEPS_PER_QUARTER = 4;
 
 export const config = {
