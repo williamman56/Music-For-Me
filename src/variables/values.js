@@ -17,7 +17,7 @@ export const EMPTY = {
     totalTime: 8
 }
 
-export const chordsToNotes = {
+export const chordToNotes = {
     "A":    ["A2", "C#3", "E3"],
     "Am":   ["A2", "C3", "E3"],
     "Bb":   ["Bb2", "D3", "F3"],
