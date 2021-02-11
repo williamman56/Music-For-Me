@@ -8,6 +8,8 @@ import PianoRoll from './PianoRoll.jsx';
 import {supportedInstruments, chords, chordToNotes, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
 import {TWINKLE_TWINKLE} from '../../media/twinkle.js';
 
+import metronome_sound from '../../media/woodblock.wav';
+
 import * as Tone from 'tone';
 import WebMidi from '../../../node_modules/webmidi/webmidi.min.js'
 
@@ -56,7 +58,10 @@ class Player extends Component {
       },
       release: 1,
       baseUrl: "https://tonejs.github.io/audio/salamander/",
+      onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
+    this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
+    this.metronomePlayer.buffer.onload(() => {console.log("Metronome Loaded")});
     this.synth = new this.Tone.PolySynth(this.Tone.Synth).toDestination();
     this.Tone.Transport.bpm.value = this.state.tempo;
     this.player.setTempo(this.state.tempo);
@@ -143,6 +148,9 @@ class Player extends Component {
   async prototypeGenerateSequences() {
     let sessionSeq;
     let noteSequences;
+    this.Tone.Transport.scheduleRepeat(time => {
+      this.metronomePlayer.start(time);
+    }, "4n");
 
     await this.scheduleChords();
     await this.Tone.start();
