@@ -5,8 +5,10 @@ import ValueSelector from './ValueSelector.jsx';
 import Visualizer from './visualizer.jsx';
 import PianoRoll from './PianoRoll.jsx';
 
-import {supportedInstruments, chords, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
+import {supportedInstruments, chords, chordToNotes, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
 import {TWINKLE_TWINKLE} from '../../media/twinkle.js';
+
+import metronome_sound from '../../media/woodblock.wav';
 
 import * as Tone from 'tone';
 import WebMidi from '../../../node_modules/webmidi/webmidi.min.js'
@@ -56,7 +58,11 @@ class Player extends Component {
       },
       release: 1,
       baseUrl: "https://tonejs.github.io/audio/salamander/",
+      onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
+    this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
+    this.metronomePlayer.buffer.onload(() => {console.log("Metronome Loaded")});
+    this.synth = new this.Tone.PolySynth(this.Tone.Synth).toDestination();
     this.Tone.Transport.bpm.value = this.state.tempo;
     this.player.setTempo(this.state.tempo);
     
@@ -67,6 +73,8 @@ class Player extends Component {
     this.findLastNote = this.findLastNote.bind(this);
     this.stepsToSeconds = this.stepsToSeconds.bind(this);
     this.playNotes = this.playNotes.bind(this);
+    this.playChord = this.playChord.bind(this);
+    this.scheduleChords = this.scheduleChords.bind(this);
 
     this.Tone.start();
     console.log('audio is ready');
@@ -140,6 +148,11 @@ class Player extends Component {
   async prototypeGenerateSequences() {
     let sessionSeq;
     let noteSequences;
+    this.Tone.Transport.scheduleRepeat(time => {
+      this.metronomePlayer.start(time);
+    }, "4n");
+
+    await this.scheduleChords();
     await this.Tone.start();
     //Init sessionSeq and noteSequences to be empty
     await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0});
@@ -193,7 +206,7 @@ class Player extends Component {
     console.log('BAR 4');
     var aiSeq2 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3]);
     //Same issue here as above
-    for (var i = 0; i < aiSeq2.notes.length; i++) {
+    for (i = 0; i < aiSeq2.notes.length; i++) {
       aiSeq2.notes[i].quantizedStartStep -= (2*BAR_LENGTH);
       aiSeq2.notes[i].quantizedEndStep -= (2*BAR_LENGTH);
     }
@@ -224,7 +237,6 @@ class Player extends Component {
         //Schedule the stopping of the recording at recordTime
         this.Tone.Transport.schedule(async (time)=>{
             this.Tone.Transport.pause();
-            this.Tone.Transport.cancel(0);
 
             //Operate on dummy var
             let curPlayerSeq = this.state.curPlayerSeq;
@@ -263,10 +275,37 @@ class Player extends Component {
       });
       this.Tone.Transport.schedule((time) => {
         this.Tone.Transport.pause();
+        //Set timeout so player has time to prepare playing
         setTimeout(()=> { resolve(); }, 500);
       }, notes.totalTime);
       this.Tone.Transport.start();
     }) 
+  }
+
+  //Chord received in string form
+  //Ex: "Cm", "A"
+  playChord(chord, duration, time) {
+    let notes = chordToNotes[chord];
+    if (notes){
+      this.synth.triggerAttackRelease(notes[0], duration, time);
+      this.synth.triggerAttackRelease(notes[1], duration, time);
+      this.synth.triggerAttackRelease(notes[2], duration, time);
+    } else {
+      console.log("Chord not found");
+    }
+  }
+
+  scheduleChords() {
+    return new Promise( (resolve, reject) => {
+      let chords = this.state.selectedChords;
+      let bar_time = this.stepsToSeconds(BAR_LENGTH);      
+      for (let i = 0; i < chords.length; ++i) {
+        this.Tone.Transport.schedule((time) => {
+          this.playChord(chords[i], bar_time, time);
+        }, bar_time*i+0.05);
+      }
+      resolve();
+    });
   }
   
   //Combines note_seq2 on top of note_seq1
