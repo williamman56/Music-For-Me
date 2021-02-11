@@ -263,10 +263,17 @@ class Player extends Component {
       });
       this.Tone.Transport.schedule((time) => {
         this.Tone.Transport.pause();
+        //Set timeout so player has time to prepare playing
         setTimeout(()=> { resolve(); }, 500);
       }, notes.totalTime);
       this.Tone.Transport.start();
     }) 
+  }
+
+  //Chord received in string form
+  //Ex: "Cm", "A"
+  playChord(chord) {
+    
   }
   
   //Combines note_seq2 on top of note_seq1
