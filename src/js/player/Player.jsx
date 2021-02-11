@@ -178,6 +178,7 @@ class Player extends Component {
     playerSeq2.tempos = [{qpm:120, time:0}];
     playerSeq2 = mm.sequences.quantizeNoteSequence(playerSeq2, STEPS_PER_QUARTER);
     //OKAY some absolute witchcraft here but quantizeNoteSequence was computing the steps 2*BAR_LENGTH away from what they were supposed to be
+    //This may make sense since 2*BARLENGTH has passed here but the seconds should be absolute
     for (var i = 0; i < playerSeq2.notes.length; i++) {
       playerSeq2.notes[i].quantizedStartStep -= (2*BAR_LENGTH);
       playerSeq2.notes[i].quantizedEndStep -= (2*BAR_LENGTH);
