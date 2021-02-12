@@ -65,29 +65,7 @@ button {
   margin-right: 8px;
 }
 
-.Visualizers {
-  margin-top: 10px;
-}
-
-.Visualizers {
-  --visualizer-padding: 30px;
-}
-
-.Visualizers > div {
-  padding: var(--visualizer-padding);
+.Visualizer{
+  padding: 30px;
   margin: 20px 20px;
-  display: inline-block;
-  border-style: solid;
-  border-color: #033b4c;
-  background-color: #e9e8d5;
-  width: 550px;
-  height: 200px;
-}
-
-.Visualizer-info {
-  color: #5b6770;
-  width: fit-content;
-  position: relative;
-  top: calc(0px - var(--visualizer-padding));
-  left: calc(3px - var(--visualizer-padding));
 }

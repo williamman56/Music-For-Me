@@ -2,7 +2,6 @@ import React, {Component} from 'react'
 import Button from 'react-bootstrap/Button';
 
 import ValueSelector from './ValueSelector.jsx';
-import Visualizer from './visualizer.jsx';
 import PianoRoll from './PianoRoll.jsx';
 
 import {supportedInstruments, chords, chordToNotes, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
@@ -365,30 +364,24 @@ class Player extends Component {
           <i className="fas fa-record-vinyl" />Start Recording
         </Button>
         
-        <div className='Visualizers'>
-          <Visualizer noteSequence={this.state.noteSequences[0]} player="You" chord={this.state.selectedChords[0]} />
-          <Visualizer noteSequence={this.state.noteSequences[1]} player="AI" chord={this.state.selectedChords[1]} />
-          
-          <br />
-          
-          <Visualizer noteSequence={this.state.noteSequences[2]} player="You" chord={this.state.selectedChords[2]} />
-          <Visualizer noteSequence={this.state.noteSequences[3]} player="AI" chord={this.state.selectedChords[3]} />
+        <div className="Visualizer">
+          <PianoRoll 
+            currentNote={this.state.currentNote} 
+            barTime={this.stepsToSeconds(BAR_LENGTH)} 
+            isRecording={this.state.isRecording} 
+            barCount={this.state.barCount}
+            aiSeq={this.state.curAISeq} 
+            playNote={this.playNote}
+            transport={this.Tone.Transport}
+            stepsToSeconds={this.stepsToSeconds} />
         </div>
+        
         <div className='Play-recording'>
           <p>Play your AI music collab!</p>
           <Button onClick={this.playRecording} disabled={this.state.isPlaying}>
             <i className="fas fa-play" />
           </Button>
         </div>
-        <PianoRoll 
-          currentNote={this.state.currentNote} 
-          barTime={this.stepsToSeconds(BAR_LENGTH)} 
-          isRecording={this.state.isRecording} 
-          barCount={this.state.barCount}
-          aiSeq={this.state.curAISeq} 
-          playNote={this.playNote}
-          transport={this.Tone.Transport}
-          stepsToSeconds={this.stepsToSeconds} />
       </div>
     )
   }

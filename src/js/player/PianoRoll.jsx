@@ -10,7 +10,7 @@ class PianoRoll extends Component {
       bars: []
     }
     
-    this.height = window.innerHeight * .25;
+    this.height = window.innerHeight * .4;
     this.width = window.innerWidth * .8;
 
     this.barModifier = 50//Controls length of bars on the piano roll
