@@ -3,6 +3,7 @@ import Button from 'react-bootstrap/Button';
 
 import ValueSelector from './ValueSelector.jsx';
 import PianoRoll from './PianoRoll.jsx';
+import Settings from '../UI/Settings.jsx';
 
 import {supportedInstruments, chords, chordToNotes, EMPTY, BAR_LENGTH, STEPS_PER_QUARTER} from '../../variables/values.js';
 import {TWINKLE_TWINKLE} from '../../media/twinkle.js';
@@ -66,6 +67,7 @@ class Player extends Component {
     this.player.setTempo(this.state.tempo);
     
     this.onSelectInstrument = this.onSelectInstrument.bind(this);
+    this.onSelectMidi = this.onSelectMidi.bind(this);
     this.onSelectChord = this.onSelectChord.bind(this);
     this.prototypeGenerateSequences = this.prototypeGenerateSequences.bind(this);
     this.playRecording = this.playRecording.bind(this);
@@ -74,6 +76,8 @@ class Player extends Component {
     this.playNotes = this.playNotes.bind(this);
     this.playChord = this.playChord.bind(this);
     this.scheduleChords = this.scheduleChords.bind(this);
+    this.midiNoteOn = this.midiNoteOn.bind(this);
+    this.midiNoteOff = this.midiNoteOff.bind(this);
 
     this.Tone.start();
     console.log('audio is ready');
@@ -87,45 +91,51 @@ class Player extends Component {
           this.inputDevice = WebMidi.inputs[0];
           if (this.inputDevice) {
             //On note press
-            this.inputDevice.addListener('noteon', "all", async (e) => {
-              //console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
-              //console.log(e);
-              if (this.state.isRecording) {
-                //Construct the note object
-                let note = {
-                    pitch: e.note.number,
-                    startTime: this.Tone.Transport.seconds
-                };
-                //TODO: integrate note into visualizer
-                //Push note onto curPlayerSeq stack
-                let curPlayerSeq = this.state.curPlayerSeq;
-                curPlayerSeq.notes.push(note);
-                await this.setState({curPlayerSeq: curPlayerSeq});
-              }
-              //Play the note on the sampler
-              //TODO: Restrict this to not play on AI's turn
-              this.sampler.triggerAttack([e.note.name + '' + e.note.octave]);
-
-            })
+            this.inputDevice.addListener('noteon', "all", this.midiNoteOn)
             //On note release
-            this.inputDevice.addListener('noteoff', "all", async (e) => {
-              //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
-              if (this.state.isRecording) {
-                let curPlayerSeq = this.state.curPlayerSeq;
-                //Find the last note in the sequence with the note that was released
-                let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
-                //Set the end time of the note
-                curPlayerSeq.notes[i].endTime = (this.Tone.Transport.seconds);
-                await this.setState({curPlayerSeq: curPlayerSeq, currentNote: curPlayerSeq.notes[i]});
-              }
-              //Stop playing the note on the sampler
-              this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
-            })
+            this.inputDevice.addListener('noteoff', "all", this.midiNoteOff)
+            
+            //So we don't re-add listeners if you select an already selected device
+            this.inputDevice.enabled = true;
           } else {
             console.log('Midi Device could not be detected');
           }
       }
     });
+  }
+  
+  async midiNoteOn(e) {
+    //console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
+    //console.log(e);
+    if (this.state.isRecording) {
+      //Construct the note object
+      let note = {
+          pitch: e.note.number,
+          startTime: this.Tone.Transport.seconds
+      };
+      //TODO: integrate note into visualizer
+      //Push note onto curPlayerSeq stack
+      let curPlayerSeq = this.state.curPlayerSeq;
+      curPlayerSeq.notes.push(note);
+      await this.setState({curPlayerSeq: curPlayerSeq});
+    }
+    //Play the note on the sampler
+    //TODO: Restrict this to not play on AI's turn
+    this.sampler.triggerAttack([e.note.name + '' + e.note.octave]);
+  }
+  
+  async midiNoteOff(e) {
+    //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
+    if (this.state.isRecording) {
+      let curPlayerSeq = this.state.curPlayerSeq;
+      //Find the last note in the sequence with the note that was released
+      let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
+      //Set the end time of the note
+      curPlayerSeq.notes[i].endTime = (this.Tone.Transport.seconds);
+      await this.setState({curPlayerSeq: curPlayerSeq, currentNote: curPlayerSeq.notes[i]});
+    }
+    //Stop playing the note on the sampler
+    this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
   }
   
   componentDidMount() {
@@ -136,6 +146,16 @@ class Player extends Component {
   
   onSelectInstrument(e) {
     this.setState({selectedInstrument: e.target.text})
+  }
+  
+  onSelectMidi(device) {
+    console.log(device);
+    this.inputDevice = device;
+    if (!this.inputDevice.enabled) {
+      this.inputDevice.addListener('noteon', "all", this.midiNoteOn)
+      this.inputDevice.addListener('noteoff', "all", this.midiNoteOff)
+      this.inputDevice.enabled = true;
+    }
   }
   
   onSelectChord(chord, index) {
@@ -354,15 +374,23 @@ class Player extends Component {
         <div className='Value-selector'>
           <ValueSelector 
             selectedInstrument={this.state.selectedInstrument}
-            selectedChords={this.state.selectedChords}
             onSelectInstrument={this.onSelectInstrument}
-            onSelectChord={this.onSelectChord}
+            availableMidi={WebMidi.inputs}
+            selectedMidi={this.inputDevice}
+            onSelectMidi={this.onSelectMidi}
           />
         </div>
         
-        <Button className='Record-generate' onClick={this.prototypeGenerateSequences}>
-          <i className="fas fa-record-vinyl" />Start Recording
-        </Button>
+        <div className='Record-generate'>
+          <Button onClick={this.prototypeGenerateSequences}>
+            <i className="fas fa-record-vinyl" />Start Recording
+          </Button>
+          
+          <Settings 
+            selectedChords={this.state.selectedChords}
+            onSelectChord={this.onSelectChord}
+          />
+        </div>
         
         <div className="Visualizer">
           <PianoRoll 

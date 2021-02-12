@@ -10,46 +10,44 @@ import {chords} from '../../variables/values.js';
 class ValueSelector extends Component {
   constructor(props){
     super(props)
-    this.state = {}
+    this.state = {
+      devices: props.availableMidi
+    }
+    
+    this.checkDevices = this.checkDevices.bind(this);
   };
+  
+  checkDevices() {
+    this.setState({devices: this.props.availableMidi});
+    //All I want to do is trigger a component update
+    //Because availableMidi updating doesn't trigger an update
+  }
   
   render() {
     return (
-      <div className='Selectors'>
-        <div className='Tool-selectors'>
-          <div className='Instrument-selector'>
-            <p className='Selector-text'>
-              Instrument:
-            </p>
-            <DropdownButton title={this.props.selectedInstrument}>
-              {supportedInstruments.map((inst, index) => 
-                <Dropdown.Item key={index} onClick={this.props.onSelectInstrument}>{inst}</Dropdown.Item>
-              )}
-            </DropdownButton>
-          </div>
-          
-          <div className='Midi-selector'>
-            <p className='Selector-text'>
-              Midi Controller:
-            </p>
-            <Button>Placeholder</Button>
-          </div>
+      <div className='Tool-selectors'>
+        <div className='Instrument-selector'>
+          <p className='Selector-text'>
+            Instrument:
+          </p>
+          <DropdownButton title={this.props.selectedInstrument}>
+            {supportedInstruments.map((inst, index) => 
+              <Dropdown.Item key={index} onClick={this.props.onSelectInstrument}>{inst}</Dropdown.Item>
+            )}
+          </DropdownButton>
         </div>
         
-        <div className='Chord-selectors'>
-          {['1', '2', '3', '4'].map((val, i) => (
-              <div key={i}>
-                <p className='Selector-text'>
-                  Chord {val}:
-                </p>
-                <DropdownButton as={ButtonGroup} title={this.props.selectedChords[i]}>
-                  {chords.map((chord, index) => 
-                    <Dropdown.Item key={index} dataindex={i} onClick={(e) => this.props.onSelectChord(chord, i)}>{chord}</Dropdown.Item>
-                  )}
-                </DropdownButton>
-              </div>
-            )
-          )}
+        <div className='Midi-selector'>
+          <p className='Selector-text'>
+            Midi Controller:
+          </p>
+          <DropdownButton title={this.props.selectedMidi ? this.props.selectedMidi.name : "None"} onClick={this.checkDevices}>
+            {this.props.availableMidi.map((inst, index) => 
+              <Dropdown.Item key={index} onClick={()=>this.props.onSelectMidi(inst)}>
+                {inst.name}
+              </Dropdown.Item>
+            )}
+          </DropdownButton>
         </div>
       </div>
     )

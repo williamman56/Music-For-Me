@@ -19,25 +19,16 @@ class PianoRoll extends Component {
     this.barRef = React.createRef();
   }
 
-  componentDidMount() {
-    console.log("BAR TIME:" + this.props.barTime);
-  }
-
   componentDidUpdate(prevProps, prevState) {
-    //console.log("BIG CAPS:" + this.width * this.props.elapsedTime / this.props.stepsToSeconds(this.props.barTime*4));
-    //console.log("BIG CAPS:" + this.props.elapsedTime);
     if (this.props.currentNote !== prevProps.currentNote) {
       this.drawNote(this.props.currentNote)
     }
     if (this.props.aiSeq !== prevProps.aiSeq) {
-      console.log("AI SEQ")
-      console.log(this.props.aiSeq)
       this.drawNoteSequence(this.props.aiSeq)
     }
   }
   
   drawNote(note, aiNote=false) {
-    console.log(note)
     let pitch = this.scalePitch(note.pitch), m = this.barModifier;
     let w = note.endTime*m - note.startTime*m;
     //RecordPlayer starts time from 0, so we need a multiplier
