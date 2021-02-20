@@ -321,7 +321,7 @@ class Player extends Component {
       for (let i = 0; i < chords.length; ++i) {
         this.Tone.Transport.schedule((time) => {
           this.playChord(chords[i], bar_time, time);
-        }, bar_time*i+0.05);
+        }, bar_time*i+0.1);
       }
       resolve();
     });
