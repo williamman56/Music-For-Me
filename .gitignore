@@ -10,7 +10,7 @@
 
 # production
 /build
-./Procfile
+Procfile
 
 # misc
 .DS_Store
