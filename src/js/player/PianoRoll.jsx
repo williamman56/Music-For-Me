@@ -43,16 +43,22 @@ class PianoRoll extends Component {
     //AI sequences keep track of their overall start time so we don't to modify them
     let multiplier = aiNote ? 0 : this.props.barCount*m*this.props.barTime;
     let x;
+    let color;
     if (aiNote) {
       x = this.width * (note.startTime / (this.props.barTime*4));
+      color = '#D352A0';
     } else {
       x = this.width * (this.props.transport.seconds / (this.props.barTime*4)) - w;
+      color = '#072940';
     }
-    let bar = React.createElement('rect', {x:x, 
+    let bar = React.createElement('rect', {
+                                            x:x, 
                                             y:pitch, 
                                             height:10, 
                                             width:w, 
-                                            key:this.state.bars.length}, null)
+                                            key:this.state.bars.length,
+                                            style:{fill:color}
+                                          }, null)
     this.setState({bars: [...this.state.bars, bar]})
   }
   
