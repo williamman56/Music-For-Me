@@ -1,6 +1,31 @@
 export const supportedInstruments = ['Piano', 'Guitar', 'Mayonnaise']
 
-export const chords = ['C', 'Am', 'F', 'G']
+export const chords = [
+    "A",
+    "Am",
+    "Bb",
+    "Bbm",
+    "B",
+    "Bm",
+    "C",
+    "Cm",
+    "Db",
+    "Dbm",
+    "D",
+    "Dm",
+    "Eb",
+    "Ebm",
+    "E",
+    "Em",
+    "F",
+    "Fm",
+    "Gb",
+    "Gbm",
+    "G",
+    "Gm",
+    "Ab",
+    "Abm"
+]
 export const BAR_LENGTH = 40;
 export const STEPS_PER_QUARTER = 4;
 
