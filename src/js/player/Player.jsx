@@ -258,7 +258,7 @@ class Player extends Component {
         let recordTime = this.stepsToSeconds(BAR_LENGTH);
 
         //Schedule the stopping of the recording at recordTime
-        this.Tone.Transport.schedule(async (time)=>{
+        this.Tone.Transport.scheduleOnce(async (time)=>{
             this.Tone.Transport.pause();
 
             //Operate on dummy var
@@ -296,7 +296,7 @@ class Player extends Component {
           this.sampler.triggerAttackRelease(pitch, duration, time);
         }, note.startTime);
       });
-      this.Tone.Transport.schedule((time) => {
+      this.Tone.Transport.scheduleOnce((time) => {
         this.Tone.Transport.pause();
         //Set timeout so player has time to prepare playing
         setTimeout(()=> { resolve(); }, 500);
@@ -367,6 +367,7 @@ class Player extends Component {
       this.player.start(this.state.sessionSeq, this.state.tempo)
       .then(() => {
         this.setState({isPlaying: false});
+        this.Tone.Transport.stop();
       });
     })
     
