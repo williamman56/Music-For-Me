@@ -19,6 +19,14 @@ class PianoRoll extends Component {
     this.barRef = React.createRef();
   }
 
+  componentDidMount() {
+    this.props.onRef(this)
+  }
+  
+  componentWillUnmount() {
+    this.props.onRef(undefined)
+  }
+
   componentDidUpdate(prevProps, prevState) {
     if (this.props.currentNote !== prevProps.currentNote) {
       this.drawNote(this.props.currentNote)
@@ -64,6 +72,10 @@ class PianoRoll extends Component {
         clearInterval(drawer)
       }
     }, 5)
+  }
+
+  clearRoll() {
+    this.setState({bars: []});
   }
   
   scalePitch(pitch) {

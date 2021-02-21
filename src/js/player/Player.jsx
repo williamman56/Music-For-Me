@@ -69,7 +69,7 @@ class Player extends Component {
     this.onSelectInstrument = this.onSelectInstrument.bind(this);
     this.onSelectMidi = this.onSelectMidi.bind(this);
     this.onSelectChord = this.onSelectChord.bind(this);
-    this.prototypeGenerateSequences = this.prototypeGenerateSequences.bind(this);
+    this.startSession = this.startSession.bind(this);
     this.playRecording = this.playRecording.bind(this);
     this.findLastNote = this.findLastNote.bind(this);
     this.stepsToSeconds = this.stepsToSeconds.bind(this);
@@ -164,17 +164,21 @@ class Player extends Component {
     this.setState({selectedChords: select_chords});
   }
   
-  async prototypeGenerateSequences() {
+  async startSession() {
     let sessionSeq;
     let noteSequences;
+    //Init sessionSeq and noteSequences to be empty
+    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0});
+    this.pianoRoll.clearRoll();
+    this.Tone.Transport.stop();
+    this.Tone.Transport.cancel(0);
     this.Tone.Transport.scheduleRepeat(time => {
       this.metronomePlayer.start(time);
     }, "4n");
 
     await this.scheduleChords();
     await this.Tone.start();
-    //Init sessionSeq and noteSequences to be empty
-    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0});
+    
     console.log('Beginning Session');
 
     //BAR 1: PLAYER
@@ -254,7 +258,7 @@ class Player extends Component {
         let recordTime = this.stepsToSeconds(BAR_LENGTH);
 
         //Schedule the stopping of the recording at recordTime
-        this.Tone.Transport.schedule(async (time)=>{
+        this.Tone.Transport.scheduleOnce(async (time)=>{
             this.Tone.Transport.pause();
 
             //Operate on dummy var
@@ -292,7 +296,7 @@ class Player extends Component {
           this.sampler.triggerAttackRelease(pitch, duration, time);
         }, note.startTime);
       });
-      this.Tone.Transport.schedule((time) => {
+      this.Tone.Transport.scheduleOnce((time) => {
         this.Tone.Transport.pause();
         //Set timeout so player has time to prepare playing
         setTimeout(()=> { resolve(); }, 500);
@@ -363,6 +367,7 @@ class Player extends Component {
       this.player.start(this.state.sessionSeq, this.state.tempo)
       .then(() => {
         this.setState({isPlaying: false});
+        this.Tone.Transport.stop();
       });
     })
     
@@ -382,7 +387,7 @@ class Player extends Component {
         </div>
         
         <div className='Record-generate'>
-          <Button onClick={this.prototypeGenerateSequences}>
+          <Button onClick={this.startSession}>
             <i className="fas fa-record-vinyl" />Start Recording
           </Button>
           
@@ -393,7 +398,7 @@ class Player extends Component {
         </div>
         
         <div className="Visualizer">
-          <PianoRoll 
+          <PianoRoll onRef={ref => (this.pianoRoll = ref)}
             currentNote={this.state.currentNote} 
             barTime={this.stepsToSeconds(BAR_LENGTH)} 
             isRecording={this.state.isRecording} 
