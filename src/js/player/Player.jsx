@@ -105,8 +105,9 @@ class Player extends Component {
   }
   
   async midiNoteOn(e) {
-    //console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ")." +this.Tone.now());
-    //console.log(e);
+    //Play the note on the sampler
+    //TODO: Restrict this to not play on AI's turn
+    this.sampler.triggerAttack([e.note.name + '' + e.note.octave]);
     if (this.state.isRecording) {
       //Construct the note object
       let note = {
@@ -119,12 +120,12 @@ class Player extends Component {
       curPlayerSeq.notes.push(note);
       await this.setState({curPlayerSeq: curPlayerSeq});
     }
-    //Play the note on the sampler
-    //TODO: Restrict this to not play on AI's turn
-    this.sampler.triggerAttack([e.note.name + '' + e.note.octave]);
+    
   }
   
   async midiNoteOff(e) {
+    //Stop playing the note on the sampler
+    this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
     //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
     if (this.state.isRecording) {
       let curPlayerSeq = this.state.curPlayerSeq;
@@ -134,8 +135,7 @@ class Player extends Component {
       curPlayerSeq.notes[i].endTime = (this.Tone.Transport.seconds);
       await this.setState({curPlayerSeq: curPlayerSeq, currentNote: curPlayerSeq.notes[i]});
     }
-    //Stop playing the note on the sampler
-    this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
+    
   }
   
   componentDidMount() {
@@ -174,7 +174,7 @@ class Player extends Component {
     this.Tone.Transport.cancel(0);
     this.Tone.Transport.scheduleRepeat(time => {
       this.metronomePlayer.start(time);
-    }, "4n");
+    }, "4n", "4n");
 
     await this.scheduleChords();
     await this.Tone.start();
