@@ -25,7 +25,7 @@ class Player extends Component {
     
     this.state = {
       selectedInstrument: supportedInstruments[0],
-      selectedChords: [chords[0], chords[1], chords[2], chords[3]],
+      selectedChords: ['C', 'Am', 'F', 'G'],
       //Array of note sequences in the sequence
       noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY],
       //The entire sessionSeq in noteSeq
