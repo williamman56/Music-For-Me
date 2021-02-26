@@ -111,6 +111,7 @@ class PianoRoll extends Component {
           <PianoBar 
             height={this.height} 
             width={this.width} 
+            isStarted={this.props.isStarted}
             transport={this.props.transport} 
             stepsToSeconds={this.props.stepsToSeconds}
             barTime={this.props.barTime} 

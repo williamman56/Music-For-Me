@@ -12,7 +12,10 @@ class PianoBar extends Component {
   
   componentDidMount() {
     let that = this
-    this.props.transport.on("start", function(){ that.startBar() })
+    this.props.transport.on("start", function(){ 
+      if (that.props.isStarted)
+        that.startBar();
+    })
     this.props.transport.on("stop", function(){ clearInterval(that.movement) })
     this.props.transport.on("pause", function(){ clearInterval(that.movement) })
   }
