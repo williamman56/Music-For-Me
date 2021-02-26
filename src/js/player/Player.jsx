@@ -179,7 +179,7 @@ class Player extends Component {
     let sessionSeq;
     let noteSequences;
     //Init sessionSeq and noteSequences to be empty
-    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0});
+    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted:false});
     this.pianoRoll.clearRoll();
     this.Tone.Transport.stop();
     this.Tone.Transport.cancel(0);
@@ -195,6 +195,7 @@ class Player extends Component {
       this.Tone.Transport.scheduleRepeat(time => {
         this.metronomePlayer.start(time);
       }, "4n");
+      await this.setState({isStarted: true});
       await this.scheduleChords();
       await this.Tone.start();
       console.log('Beginning Session');
