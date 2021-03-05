@@ -41,8 +41,8 @@ Let's go horseys
 }
 
 .Chord-selectors div {
-  display: block;
-  margin-right: 10px;
+  display: inline-block;
+  margin: 5px 5px;
 }
 
 .Selector-text {
@@ -59,6 +59,10 @@ button {
 
 .Record-generate {
   margin-top: 50px;
+}
+
+.Record-generate > div {
+  display: inline-block;
 }
 
 .Record-generate i {
