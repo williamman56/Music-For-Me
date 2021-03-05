@@ -39,7 +39,7 @@ class Player extends Component {
       isStarted: false,
       currentNote: null,
       temperature: 1.1,
-      tempo: 120,
+      tempo: 80,
       barCount: 0
     }
     
@@ -203,7 +203,9 @@ class Player extends Component {
       //BAR 1: PLAYER
       console.log('BAR 1');
       var playerSeq1 = await(this.recordPlayer());
+      playerSeq1.tempos = [{qpm:this.state.tempo, time:0}];
       playerSeq1 = mm.sequences.quantizeNoteSequence(playerSeq1, STEPS_PER_QUARTER);
+      console.log("PLAYER 1:")
       console.log(playerSeq1);
 
       //add player seq 1 to noteSequences
@@ -216,13 +218,19 @@ class Player extends Component {
       console.log('BAR 2');
       //Generate AI sequence 1
       var aiSeq1 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[1]);
+      console.log("AI 2:")
+      console.log(aiSeq1);
+
       //combine the note sequences
-      sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq1);
+      sessionSeq = mm.sequences.concatenate([this.state.sessionSeq, aiSeq1]);
+      //Shift AI sequence so it in correct Transport position
+      aiSeq1 = this.shiftSequence(this.state.sessionSeq, aiSeq1)
+      
       //add AI seq to noteSequences
       noteSequences[1] = aiSeq1;
       //Update the state
       await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq1, barCount: this.state.barCount+1});
-      //console.log(aiSeq1);
+      console.log(this.state.sessionSeq);
       //Play the AI seq
       await this.playNotes(aiSeq1);
       
@@ -230,30 +238,27 @@ class Player extends Component {
       //BAR 3: PLAYER
       console.log('BAR 3');
       var playerSeq2 = await(this.recordPlayer());
-      playerSeq2.tempos = [{qpm:120, time:0}];
+      playerSeq2.tempos = [{qpm:this.state.tempo, time:0}];
       playerSeq2 = mm.sequences.quantizeNoteSequence(playerSeq2, STEPS_PER_QUARTER);
-      //OKAY some absolute witchcraft here but quantizeNoteSequence was computing the steps 2*BAR_LENGTH away from what they were supposed to be
-      //This may make sense since 2*BARLENGTH has passed here but the seconds should be absolute
-      for (var i = 0; i < playerSeq2.notes.length; i++) {
-        playerSeq2.notes[i].quantizedStartStep -= (2*BAR_LENGTH);
-        playerSeq2.notes[i].quantizedEndStep -= (2*BAR_LENGTH);
-      }
+      console.log("PLAYER 3:");
+
       console.log(playerSeq2)
       noteSequences[2] = playerSeq2;
-      sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, playerSeq2);
+      sessionSeq = this.addNoteSeqs(this.state.sessionSeq, playerSeq2);
       console.log(sessionSeq)
       await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
 
       //BAR 4: AI
       console.log('BAR 4');
       var aiSeq2 = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[3]);
-      //Same issue here as above
-      for (i = 0; i < aiSeq2.notes.length; i++) {
-        aiSeq2.notes[i].quantizedStartStep -= (2*BAR_LENGTH);
-        aiSeq2.notes[i].quantizedEndStep -= (2*BAR_LENGTH);
-      }
-      sessionSeq = this.combineNoteSeqs(this.state.sessionSeq, aiSeq2);
+      console.log(aiSeq2);
+
+      //Combine session sequence with AI sequence
+      sessionSeq = mm.sequences.concatenate([this.state.sessionSeq, aiSeq2]);
       noteSequences[3] = aiSeq2;
+      //Shift AI sequence so it in correct Transport position
+      aiSeq2 = this.shiftSequence(this.state.sessionSeq, aiSeq2)
+
       await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq2, barCount: this.state.barCount+1});
       await this.playNotes(aiSeq2);
       console.log('DONE');
@@ -352,18 +357,30 @@ class Player extends Component {
     });
   }
   
-  //Combines note_seq2 on top of note_seq1
-  combineNoteSeqs(note_seq1, note_seq2) {
+  //Adds note_seq2 on top of note_seq1. This assumes that note_seq2's play times are already relative to note_seq1
+  //Returns the compounded sequence
+  addNoteSeqs(note_seq1, note_seq2) {
+    let baseStep = note_seq1.totalQuantizedSteps;
+
+    for (var i = 0; i < note_seq2.notes.length; i++) {
+      note_seq1.notes.push(note_seq2.notes[i]);
+    }
+    note_seq1.totalQuantizedSteps = note_seq2.totalQuantizedSteps;
+    return note_seq1
+  }
+
+  //Shifts note_seq2 such that it will play relatively after note_seq1
+  //Returns the shifted note_seq2
+  shiftSequence(note_seq1, note_seq2) {
     let baseStep = note_seq1.totalQuantizedSteps;
     let totalSteps = note_seq1.totalQuantizedSteps + note_seq2.totalQuantizedSteps;
     for (var i = 0; i < note_seq2.notes.length; i++) {
-        let note = note_seq2.notes[i];
-        note.quantizedStartStep += baseStep;
-        note.quantizedEndStep += baseStep;
-        note_seq1.notes.push(note);
+      var note = note_seq2.notes[i];
+      note.quantizedStartStep += baseStep;
+      note.quantizedEndStep += baseStep;
     }
-    note_seq1.totalQuantizedSteps = totalSteps;
-    return note_seq1
+    note_seq2.totalQuantizedSteps = totalSteps;
+    return note_seq2;
   }
 
   //Find the last note with the given pitch
