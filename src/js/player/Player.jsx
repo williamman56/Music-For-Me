@@ -39,7 +39,7 @@ class Player extends Component {
       isStarted: false,
       currentNote: null,
       temperature: 1.1,
-      tempo: 120,
+      tempo: 80,
       barCount: 0
     }
     
@@ -203,8 +203,8 @@ class Player extends Component {
       //BAR 1: PLAYER
       console.log('BAR 1');
       var playerSeq1 = await(this.recordPlayer());
+      playerSeq1.tempos = [{qpm:this.state.tempo, time:0}];
       playerSeq1 = mm.sequences.quantizeNoteSequence(playerSeq1, STEPS_PER_QUARTER);
-      playerSeq1.tempos[0].qpm = this.state.tempo;
       console.log("PLAYER 1:")
       console.log(playerSeq1);
 
