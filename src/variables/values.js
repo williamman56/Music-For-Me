@@ -26,7 +26,7 @@ export const chords = [
     "Ab",
     "Abm"
 ]
-export const BAR_LENGTH = 40;
+export const BAR_LENGTH = 64;
 export const STEPS_PER_QUARTER = 4;
 
 export const config = {

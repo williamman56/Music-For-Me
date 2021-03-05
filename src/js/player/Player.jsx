@@ -39,7 +39,7 @@ class Player extends Component {
       isStarted: false,
       currentNote: null,
       temperature: 1.1,
-      tempo: 80,
+      tempo: 95,
       barCount: 0
     }
     
