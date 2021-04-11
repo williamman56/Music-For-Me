@@ -218,38 +218,39 @@ class Player extends Component {
       await this.setState({isStarted: true});
       await this.scheduleChords();
       var chords = this.state.selectedChords;
-    var chordCount = this.state.selectedChords.length;
-    var bar_time = this.stepsToSeconds(BAR_LENGTH);
+      var chordCount = this.state.selectedChords.length;
+      var bar_time = this.stepsToSeconds(BAR_LENGTH);
       await this.Tone.start();
       console.log('Beginning Session');
     
-    let cont = false;
+      let cont = false;
 
-    while(this.state.inSession) {
-      //PLAYER 
-      let i = this.state.barCount%chordCount;
-      var playerSeq = await(this.recordPlayer());
-      playerSeq.tempos = [{qpm:this.state.tempo, time:0}];
-      playerSeq = mm.sequences.quantizeNoteSequence(playerSeq, STEPS_PER_QUARTER);
-      //add player seq to noteSequences
-      noteSequences = this.state.noteSequences;
-      noteSequences[this.state.barCount] = playerSeq;
-      await this.setState({sessionSeq: playerSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
-      //BAR 2: AI
-      //Generate AI sequence 1
-      var aiSeq = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[i]);
-      //combine the note sequences
-      sessionSeq = mm.sequences.concatenate([this.state.sessionSeq, aiSeq1]);
-      //Shift AI sequence so it in correct Transport position
-      aiSeq = this.shiftSequence(this.state.sessionSeq, aiSeq)
-      //add AI seq to noteSequences
-      noteSequences[this.state.barCount] = aiSeq;
-      await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq, barCount: this.state.barCount+1});
-      //Play the AI seq
-      i = this.state.barCount%chordCount;
-      await this.playNotes(aiSeq);
+      while(this.state.inSession) {
+        //PLAYER 
+        let i = this.state.barCount%chordCount;
+        var playerSeq = await(this.recordPlayer());
+        playerSeq.tempos = [{qpm:this.state.tempo, time:0}];
+        playerSeq = mm.sequences.quantizeNoteSequence(playerSeq, STEPS_PER_QUARTER);
+        //add player seq to noteSequences
+        noteSequences = this.state.noteSequences;
+        noteSequences[this.state.barCount] = playerSeq;
+        await this.setState({sessionSeq: playerSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
+        //BAR 2: AI
+        //Generate AI sequence 1
+        var aiSeq = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[i]);
+        //combine the note sequences
+        sessionSeq = mm.sequences.concatenate([this.state.sessionSeq, aiSeq]);
+        //Shift AI sequence so it in correct Transport position
+        aiSeq = this.shiftSequence(this.state.sessionSeq, aiSeq)
+        //add AI seq to noteSequences
+        noteSequences[this.state.barCount] = aiSeq;
+        await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq, barCount: this.state.barCount+1});
+        //Play the AI seq
+        i = this.state.barCount%chordCount;
+        await this.playNotes(aiSeq);
 
-      this.Tone.Transport.pause()
+        this.Tone.Transport.pause()
+      }
     }, {"2n": 3, "4n": 2});
     await this.Tone.Transport.start(); 
   }
