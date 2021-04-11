@@ -199,7 +199,7 @@ class Player extends Component {
     let sessionSeq;
     let noteSequences;
     //Init sessionSeq and noteSequences to be empty
-    await this.setState({sessionSeq: EMPTY, noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, inSession: true});
+    await this.setState({sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY), noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, inSession: true});
     this.pianoRoll.clearRoll();
     this.Tone.Transport.stop();
     this.Tone.Transport.cancel(0);
@@ -234,9 +234,12 @@ class Player extends Component {
         //add player seq to noteSequences
         noteSequences = this.state.noteSequences;
         noteSequences[this.state.barCount] = playerSeq;
+        //sessionSeq = this.addNoteSeqs(this.state.sessionSeq, playerSeq);
+        
         await this.setState({sessionSeq: playerSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
         //BAR 2: AI
         //Generate AI sequence 1
+
         var aiSeq = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[i]);
         //combine the note sequences
         sessionSeq = mm.sequences.concatenate([this.state.sessionSeq, aiSeq]);
@@ -258,6 +261,7 @@ class Player extends Component {
   //return a new sequence of notes based off the previous notes and chord
   generateNextSequence(prevNotes, chord) {
     return new Promise(async (resolve, reject)=> {
+      console.log((prevNotes))
         let nextSeq = await this.rnn.continueSequence(prevNotes, BAR_LENGTH, this.state.temperature, [chord]);
         resolve(nextSeq);
     })
