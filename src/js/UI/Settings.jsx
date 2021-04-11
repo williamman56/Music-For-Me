@@ -28,7 +28,23 @@ class Settings extends Component {
   }
   
   render() {
-    
+    const removeChordButton = (<Button onClick={this.props.removeChord}>-</Button>);
+    const addChordButton = (<Button onClick={this.props.addChord}>+</Button>);
+    const chordSelectors = [];
+    for (let i = 0; i < this.props.selectedChords.length; ++i) {
+      chordSelectors.push(
+        (<div key={i}>
+          <p className='Selector-text'>
+            Chord {i+1}:
+          </p>
+          <DropdownButton as={ButtonGroup} title={this.props.selectedChords[i]}>
+            {chords.map((chord, index) => 
+              <Dropdown.Item key={index} dataindex={i} onClick={(e) => this.props.onSelectChord(chord, i)}>{chord}</Dropdown.Item>
+            )}
+          </DropdownButton>
+        </div>)
+      )
+    }
     return (
       <div className="Settings-Button">
         <Button onClick={this.openSettings} >
@@ -43,19 +59,9 @@ class Settings extends Component {
           <Modal.Body>
             <div className='Chord-selectors'>
               <h5>Background Chords:</h5>
-              {['1', '2', '3', '4'].map((val, i) => (
-                  <div key={i}>
-                    <p className='Selector-text'>
-                      Chord {val}:
-                    </p>
-                    <DropdownButton as={ButtonGroup} title={this.props.selectedChords[i]}>
-                      {chords.map((chord, index) => 
-                        <Dropdown.Item key={index} dataindex={i} onClick={(e) => this.props.onSelectChord(chord, i)}>{chord}</Dropdown.Item>
-                      )}
-                    </DropdownButton>
-                  </div>
-                )
-              )}
+              {chordSelectors}
+              {removeChordButton}
+              {addChordButton}
             </div>
           </Modal.Body>
           <Modal.Footer>

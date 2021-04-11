@@ -1,22 +1,26 @@
 import React, {Component} from 'react'
 
 import PianoBar from './PianoBar.jsx';
+import {BAR_LENGTH} from '../../variables/values.js';
 
 class PianoRoll extends Component {
   constructor(props){
     super(props)
     
     this.state = {
-      bars: []
+      bars: [],
+      viewWidth: window.innerWidth * .8//Total width including hidden parts (will expand as notes are added)
     }
     
     this.height = window.innerHeight * .4;
-    this.width = window.innerWidth * .8;
+    //TODO: Update widht&height when user resizes window
+    this.width = window.innerWidth * .8;//Width for what is visible (only based on window size)
+    this.barWidth = window.innerWidth * .2;
 
     this.barModifier = 50//Controls length of bars on the piano roll
     
+    this.divRef = React.createRef();
     this.svgRef = React.createRef();
-    this.barRef = React.createRef();
   }
 
   componentDidMount() {
@@ -38,7 +42,7 @@ class PianoRoll extends Component {
   
   drawNote(note, aiNote=false) {
     let pitch = this.scalePitch(note.pitch), m = this.barModifier;
-    let w = note.endTime*m - note.startTime*m;
+    let w = (note.endTime - note.startTime)*m;
     //RecordPlayer starts time from 0, so we need a multiplier
     //AI sequences keep track of their overall start time so we don't to modify them
     let multiplier = aiNote ? 0 : this.props.barCount*m*this.props.barTime;
@@ -51,6 +55,13 @@ class PianoRoll extends Component {
       x = this.width * (this.props.transport.seconds / (this.props.barTime*4)) - w;
       color = '#072940';
     }
+    
+    if (x+50 > this.state.viewWidth) {
+      this.setState({viewWidth: this.state.viewWidth + this.width/2}, () => {
+        this.divRef.current.scrollLeft += this.width;
+      });      
+    }
+    
     let bar = React.createElement('rect', {
                                             x:x, 
                                             y:pitch, 
@@ -100,11 +111,29 @@ class PianoRoll extends Component {
   }
   
   render() {
+    const separationBars = [], chordText = []
+    for (let i = 0; i < this.state.viewWidth/this.barWidth; ++i) {
+      separationBars.push(<rect height={this.height} width="3" x={i*this.barWidth} key={i} />);
+      /*separationBars.push(<rect 
+                            height={this.height} 
+                            width="3" 
+                            x={this.width * (this.props.stepsToSeconds(BAR_LENGTH) * i / (this.props.barTime*4))} 
+                            key={i} 
+                          />);*/
+      chordText.push(
+      (<text x={i*this.barWidth+10} y="22" style={{fill: (i%2)==0 ? "#072940" : "#D352A0"}} key={i}>
+        {this.props.selectedChords[i%this.props.selectedChords.length]}
+      </text>));
+    }
     
     return (
-      <div>
-        <svg ref={this.svgRef} height={this.height} width={this.width} >
-          <rect height={this.height} width={this.width} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
+      <div ref={this.divRef} style={{width: this.width, display: "inline-block", overflowX:this.state.viewWidth > this.width ? "scroll" : "hidden"}}>
+        <svg ref={this.svgRef} height={this.height} width={this.state.viewWidth} >
+          <rect height={this.height} width={this.state.viewWidth} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
+          
+          {separationBars}
+          {chordText}
+          
           {this.state.bars.map(function(b,i){
             return b
           })}
