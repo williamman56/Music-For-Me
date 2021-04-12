@@ -216,7 +216,7 @@ class Player extends Component {
         this.metronomePlayer.start(time);
       }, "4n");
       await this.setState({isStarted: true});
-      await this.scheduleChords();
+      //await this.scheduleChords();
       var chords = this.state.selectedChords;
       var chordCount = this.state.selectedChords.length;
       var bar_time = this.stepsToSeconds(BAR_LENGTH);
@@ -227,7 +227,8 @@ class Player extends Component {
 
       while(this.state.inSession) {
         //PLAYER 
-        let i = this.state.barCount%chordCount;
+        let i = this.state.barCount % chordCount;
+        this.playChord(chords[i], bar_time, this.Tone.now());
         var playerSeq = await(this.recordPlayer());
         playerSeq.tempos = [{qpm:this.state.tempo, time:0}];
         playerSeq = mm.sequences.quantizeNoteSequence(playerSeq, STEPS_PER_QUARTER);
@@ -249,7 +250,10 @@ class Player extends Component {
         noteSequences[this.state.barCount] = aiSeq;
         await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq, barCount: this.state.barCount+1});
         //Play the AI seq
-        i = this.state.barCount%chordCount;
+        i = (this.state.barCount-1)%chordCount;
+        console.log(this.state.barCount);
+        console.log(chords);
+        this.playChord(chords[i], bar_time, this.Tone.now());
         await this.playNotes(aiSeq);
 
         this.Tone.Transport.pause()
@@ -340,12 +344,14 @@ class Player extends Component {
   scheduleChords() {
     return new Promise( (resolve, reject) => {
       let chords = this.state.selectedChords;
-      let bar_time = this.stepsToSeconds(BAR_LENGTH);    
-      console.log(bar_time);
-      for (let i = 0; i < chords.length; ++i) {
+      let bar_count = this.state.barCount;
+      console.log(bar_count)
+      let bar_time = this.stepsToSeconds(BAR_LENGTH);
+
+      for (let j = 0; j < bar_count; j++) {
         this.Tone.Transport.schedule((time) => {
-          this.playChord(chords[i], bar_time, time);
-        }, bar_time*i+0.1);
+          this.playChord(chords[j%bar_count], bar_time, time);
+        }, bar_time*j+0.1);
       }
       resolve();
     });
@@ -395,8 +401,9 @@ class Player extends Component {
   //Plays the entire recording of the session
   playRecording() {
     this.Tone.Transport.stop();
-    this.setState({isPlaying: true}, () => {
-      this.player.start(this.state.sessionSeq, this.state.tempo)
+    this.setState({isPlaying: true}, async () => {
+      await this.scheduleChords();
+      this.playNotes(this.state.sessionSeq)
       .then(() => {
         this.setState({isPlaying: false});
         this.Tone.Transport.stop();
