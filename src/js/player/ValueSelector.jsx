@@ -3,9 +3,11 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import FormControl from 'react-bootstrap/FormControl';
 
 import {supportedInstruments} from '../../variables/values.js';
 import {chords} from '../../variables/values.js';
+import { InputGroup } from 'react-bootstrap';
 
 class ValueSelector extends Component {
   constructor(props){
@@ -35,6 +37,18 @@ class ValueSelector extends Component {
               <Dropdown.Item key={index} onClick={this.props.onSelectInstrument}>{inst}</Dropdown.Item>
             )}
           </DropdownButton>
+        </div>
+
+        <div className='BPM-selector'>
+          <p className='Selector-text'>
+            BPM:
+          </p>
+          <input
+            type="number"
+            defaultValue={95}
+            onChange={this.props.onSetTempo}
+            className='bpm-box'
+         />
         </div>
         
         <div className='Midi-selector'>

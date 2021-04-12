@@ -69,6 +69,7 @@ class Player extends Component {
     this.player.setTempo(this.state.tempo);
     
     this.onSelectInstrument = this.onSelectInstrument.bind(this);
+    this.onSetTempo = this.onSetTempo.bind(this);
     this.onSelectMidi = this.onSelectMidi.bind(this);
     this.onSelectChord = this.onSelectChord.bind(this);
     this.addChord = this.addChord.bind(this);
@@ -160,6 +161,11 @@ class Player extends Component {
   
   onSelectInstrument(e) {
     this.setState({selectedInstrument: e.target.text})
+  }
+
+  onSetTempo(e) {
+    this.setState({tempo: e.target.value})
+    this.Tone.Transport.bpm.value = e.target.value;
   }
   
   onSelectMidi(device) {
@@ -421,6 +427,8 @@ class Player extends Component {
             availableMidi={WebMidi.inputs}
             selectedMidi={this.inputDevice}
             onSelectMidi={this.onSelectMidi}
+            onSetTempo={this.onSetTempo}
+            bpm={this.state.tempo}
           />
         </div>
         
