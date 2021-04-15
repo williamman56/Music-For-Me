@@ -51,6 +51,16 @@ Let's go horseys
   margin: 0px 10px;
 }
 
+.bpm-box {
+  width: 50px;
+  border-radius: 5px;
+  text-align: center;
+  background-color: #546575 !important;
+  border-color: #546575 !important;
+  color: #f4f2f0;
+  height: 35px;
+}
+
 /*!important to override react-bootstrap default styles*/
 button {
   background-color: #546575 !important;
