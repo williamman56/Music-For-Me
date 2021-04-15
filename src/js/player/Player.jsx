@@ -355,8 +355,9 @@ class Player extends Component {
       let bar_time = this.stepsToSeconds(BAR_LENGTH);
 
       for (let j = 0; j < bar_count; j++) {
+        console.log(j%bar_count)
         this.Tone.Transport.schedule((time) => {
-          this.playChord(chords[j%bar_count], bar_time, time);
+          this.playChord(chords[j%chords.length], bar_time, time);
         }, bar_time*j+0.1);
       }
       resolve();
