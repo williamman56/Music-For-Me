@@ -429,6 +429,8 @@ class Player extends Component {
             onSelectMidi={this.onSelectMidi}
             onSetTempo={this.onSetTempo}
             bpm={this.state.tempo}
+            inSession={this.state.inSession}
+            isPlaying={this.state.isPlaying}
           />
         </div>
         

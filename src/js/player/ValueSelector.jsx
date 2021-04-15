@@ -48,6 +48,7 @@ class ValueSelector extends Component {
             defaultValue={95}
             onChange={this.props.onSetTempo}
             className='bpm-box'
+            disabled = {this.props.inSession || this.props.isPlaying}
          />
         </div>
         
