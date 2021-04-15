@@ -29,7 +29,7 @@ class Player extends Component {
       //Array of note sequences in the sequence
       noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY],
       //The entire sessionSeq in noteSeq
-      sessionSeq: EMPTY,
+      sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY, STEPS_PER_QUARTER),
       //The players current playing notes. Resets every player turn
       curPlayerSeq: {notes:[]},
       curAISeq: null,
@@ -205,7 +205,7 @@ class Player extends Component {
     let sessionSeq;
     let noteSequences;
     //Init sessionSeq and noteSequences to be empty
-    await this.setState({sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY), noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, inSession: true});
+    await this.setState({sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY, STEPS_PER_QUARTER), noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, inSession: true});
     this.pianoRoll.clearRoll();
     this.Tone.Transport.stop();
     this.Tone.Transport.cancel(0);
@@ -241,9 +241,10 @@ class Player extends Component {
         //add player seq to noteSequences
         noteSequences = this.state.noteSequences;
         noteSequences[this.state.barCount] = playerSeq;
-        //sessionSeq = this.addNoteSeqs(this.state.sessionSeq, playerSeq);
-        
-        await this.setState({sessionSeq: playerSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
+        sessionSeq = this.addNoteSeqs(this.state.sessionSeq, playerSeq);
+        console.log(sessionSeq)
+        console.log(playerSeq);
+        await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
         //BAR 2: AI
         //Generate AI sequence 1
 
@@ -409,6 +410,7 @@ class Player extends Component {
   playRecording() {
     this.Tone.Transport.stop();
     this.setState({isPlaying: true}, async () => {
+      this.Tone.Transport.cancel(0);
       await this.scheduleChords();
       this.playNotes(this.state.sessionSeq)
       .then(() => {
