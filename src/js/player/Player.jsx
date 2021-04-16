@@ -66,6 +66,7 @@ class Player extends Component {
     this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
     this.metronomePlayer.buffer.onload(() => {console.log("Metronome Loaded")});
     this.synth = new this.Tone.PolySynth(this.Tone.Synth).toDestination();
+    this.synth.volume.value = -4;
     this.Tone.Transport.bpm.value = this.state.tempo;
     this.player.setTempo(this.state.tempo);
     
