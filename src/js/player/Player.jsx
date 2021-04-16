@@ -197,7 +197,10 @@ class Player extends Component {
   }
   
   stopSession() {
-    this.setState({inSession: false});
+    if (this.state.isRecording) {
+      this.Tone.Transport.pause();
+    }
+    this.setState({inSession: false, isRecording: false});
   }
   
   async startSession() {
