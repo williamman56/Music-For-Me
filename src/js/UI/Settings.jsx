@@ -37,7 +37,7 @@ class Settings extends Component {
           <p className='Selector-text'>
             Chord {i+1}:
           </p>
-          <DropdownButton as={ButtonGroup} title={this.props.selectedChords[i]}>
+          <DropdownButton as={ButtonGroup} title={this.props.selectedChords[i]} >
             {chords.map((chord, index) => 
               <Dropdown.Item key={index} dataindex={i} onClick={(e) => this.props.onSelectChord(chord, i)}>{chord}</Dropdown.Item>
             )}

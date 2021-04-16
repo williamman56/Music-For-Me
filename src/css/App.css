@@ -90,6 +90,11 @@ button {
   text-align: center;
 }
 
+.dropdown-menu {
+  height: 100px;
+  overflow-y: scroll;
+}
+
 .fa-cog {
   margin-left: auto;
   margin-right: auto !important;
