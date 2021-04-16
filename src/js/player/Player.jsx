@@ -33,6 +33,7 @@ class Player extends Component {
       //The players current playing notes. Resets every player turn
       curPlayerSeq: {notes:[]},
       curAISeq: null,
+      curChord: null,
       inSession: false,
       isPlaying: false,//Playback of completed session
       isRecording: false,//Recording player input
@@ -197,7 +198,14 @@ class Player extends Component {
   }
   
   stopSession() {
-    this.setState({inSession: false});
+    let notes = chordToNotes[this.state.curChord];
+    if (this.state.isRecording) {
+      this.Tone.Transport.pause();
+      this.synth.triggerRelease(notes[0],this.Tone.now());
+      this.synth.triggerRelease(notes[1],this.Tone.now());
+      this.synth.triggerRelease(notes[2],this.Tone.now());
+    }
+    this.setState({inSession: false, isRecording: false});
   }
   
   async startSession() {
@@ -205,10 +213,17 @@ class Player extends Component {
     let sessionSeq;
     let noteSequences;
     //Init sessionSeq and noteSequences to be empty
-    await this.setState({sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY, STEPS_PER_QUARTER), noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, inSession: true});
+    await this.setState({sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY, STEPS_PER_QUARTER), noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, isPlaying:false, inSession: true});
     this.pianoRoll.clearRoll();
     this.Tone.Transport.stop();
     this.Tone.Transport.cancel(0);
+    //Stop playing chord if it was playing before session started
+    if (this.state.curChord) {
+      let notes = chordToNotes[this.state.curChord];
+      this.synth.triggerRelease(notes[0],this.Tone.now());
+      this.synth.triggerRelease(notes[1],this.Tone.now());
+      this.synth.triggerRelease(notes[2],this.Tone.now());
+    }
 
     const countOff = new Tone.Part(((time) => {
       this.metronomePlayer.start(time);
@@ -337,12 +352,18 @@ class Player extends Component {
   //Chord received in string form
   //Ex: "Cm", "A"
   playChord(chord, duration, time) {
+    this.setState({curChord: chord});
     let notes = chordToNotes[chord];
     console.log("Notes: " + notes + "; Duration: " + duration + "; Time: " + time);
     if (notes){
-      this.synth.triggerAttackRelease(notes[0], duration, time);
-      this.synth.triggerAttackRelease(notes[1], duration, time);
-      this.synth.triggerAttackRelease(notes[2], duration, time);
+      this.synth.triggerAttack(notes[0], time);
+      this.synth.triggerAttack(notes[1], time);
+      this.synth.triggerAttack(notes[2], time);
+      //this.Tone.Transport.scheduleOnce((time) => {
+        this.synth.triggerRelease(notes[0],time+duration);
+        this.synth.triggerRelease(notes[1],time+duration);
+        this.synth.triggerRelease(notes[2],time+duration);
+      //}, time+1);
     } else {
       console.log("Chord not found");
     }
@@ -368,8 +389,6 @@ class Player extends Component {
   //Adds note_seq2 on top of note_seq1. This assumes that note_seq2's play times are already relative to note_seq1
   //Returns the compounded sequence
   addNoteSeqs(note_seq1, note_seq2) {
-    let baseStep = note_seq1.totalQuantizedSteps;
-
     for (var i = 0; i < note_seq2.notes.length; i++) {
       note_seq1.notes.push(note_seq2.notes[i]);
     }
