@@ -122,7 +122,7 @@ class PianoRoll extends Component {
                           />);*/
       chordText.push(
       (<text x={i*this.barWidth+10} y="22" style={{fill: (i%2)===0 ? "#072940" : "#D352A0"}} key={i}>
-        {this.props.selectedChords[i%this.props.selectedChords.length]}
+        {this.props.selectedChords[i%this.props.selectedChords.length] + ": " + (((i%2)===0 ? "Player" : "AI"))}
       </text>));
     }
     
