@@ -213,10 +213,17 @@ class Player extends Component {
     let sessionSeq;
     let noteSequences;
     //Init sessionSeq and noteSequences to be empty
-    await this.setState({sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY, STEPS_PER_QUARTER), noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, inSession: true});
+    await this.setState({sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY, STEPS_PER_QUARTER), noteSequences: [EMPTY, EMPTY, EMPTY, EMPTY], barCount: 0, isStarted: false, isPlaying:false, inSession: true});
     this.pianoRoll.clearRoll();
     this.Tone.Transport.stop();
     this.Tone.Transport.cancel(0);
+    //Stop playing chord if it was playing before session started
+    if (this.state.curChord) {
+      let notes = chordToNotes[this.state.curChord];
+      this.synth.triggerRelease(notes[0],this.Tone.now());
+      this.synth.triggerRelease(notes[1],this.Tone.now());
+      this.synth.triggerRelease(notes[2],this.Tone.now());
+    }
 
     const countOff = new Tone.Part(((time) => {
       this.metronomePlayer.start(time);
