@@ -35,6 +35,7 @@ class PianoBar extends Component {
               width="3" 
               key="bar" 
               x={this.props.width * (this.state.elapsedTime / (this.props.barTime*4))} 
+              style= {{fill:"#ed6a40"}}
             />
   }
 }
