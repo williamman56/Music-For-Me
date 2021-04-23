@@ -9,10 +9,10 @@ class PianoRoll extends Component {
     
     this.state = {
       bars: [],
-      viewWidth: window.innerWidth * .8//Total width including hidden parts (will expand as notes are added)
+      viewWidth: window.innerWidth * 0.8//Total width including hidden parts (will expand as notes are added)
     }
     
-    this.height = window.innerHeight * .4;
+    this.height = window.innerHeight * .55;
     //TODO: Update widht&height when user resizes window
     this.width = window.innerWidth * .8;//Width for what is visible (only based on window size)
     this.barWidth = window.innerWidth * .2;
@@ -50,10 +50,10 @@ class PianoRoll extends Component {
     let color;
     if (aiNote) {
       x = this.width * (note.startTime / (this.props.barTime*4));
-      color = '#D352A0';
+      color = '#D90368';
     } else {
       x = this.width * (this.props.transport.seconds / (this.props.barTime*4)) - w;
-      color = '#072940';
+      color = '#33CB30';
     }
     
     if (x+50 > this.state.viewWidth) {
@@ -113,7 +113,7 @@ class PianoRoll extends Component {
   render() {
     const separationBars = [], chordText = []
     for (let i = 0; i < this.state.viewWidth/this.barWidth; ++i) {
-      separationBars.push(<rect height={this.height} width="3" x={i*this.barWidth} key={i} />);
+      separationBars.push(<rect height={this.height} width="3" x={i*this.barWidth} key={i} style={{fill:'white', zIndex: 999}}/>);
       /*separationBars.push(<rect 
                             height={this.height} 
                             width="3" 
@@ -121,15 +121,19 @@ class PianoRoll extends Component {
                             key={i} 
                           />);*/
       chordText.push(
-      (<text x={i*this.barWidth+10} y="22" style={{fill: (i%2)===0 ? "#072940" : "#D352A0"}} key={i}>
-        {this.props.selectedChords[i%this.props.selectedChords.length] + ": " + (((i%2)===0 ? "Player" : "AI"))}
+      (<text x={i*this.barWidth+10} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#33CB30" : "#D90368"}} key={i}>
+        {this.props.selectedChords[i%this.props.selectedChords.length]}
+      </text>));
+      chordText.push(
+      (<text x={(i+1)*this.barWidth-((i%2)===0 ? 65: 26)} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#33CB30" : "#D90368"}} key={i}>
+        {(((i%2)===0 ? "Player" : "AI"))}
       </text>));
     }
     
     return (
       <div ref={this.divRef} style={{width: this.width, display: "inline-block", overflowX:this.state.viewWidth > this.width ? "scroll" : "hidden"}}>
         <svg ref={this.svgRef} height={this.height} width={this.state.viewWidth} >
-          <rect height={this.height} width={this.state.viewWidth} style={{fill:"#e9e8d5", strokeWidth:5, stroke:"black"}} />
+          <rect height={this.height} width={this.state.viewWidth} style={{fill:"#151515", strokeWidth:5, stroke:"#151515"}} />
           
           {separationBars}
           {chordText}
