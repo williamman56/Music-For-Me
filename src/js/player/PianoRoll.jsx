@@ -50,10 +50,10 @@ class PianoRoll extends Component {
     let color;
     if (aiNote) {
       x = this.width * (note.startTime / (this.props.barTime*4));
-      color = '#D90368';
+      color = '#BB86FC';
     } else {
       x = this.width * (this.props.transport.seconds / (this.props.barTime*4)) - w;
-      color = '#33CB30';
+      color = '#03DAC5';
     }
     
     if (x+50 > this.state.viewWidth) {
@@ -121,11 +121,11 @@ class PianoRoll extends Component {
                             key={i} 
                           />);*/
       chordText.push(
-      (<text x={i*this.barWidth+10} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#33CB30" : "#D90368"}} key={i}>
+      (<text x={i*this.barWidth+10} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#03DAC5" : "#BB86FC"}} key={i}>
         {this.props.selectedChords[i%this.props.selectedChords.length]}
       </text>));
       chordText.push(
-      (<text x={(i+1)*this.barWidth-((i%2)===0 ? 65: 26)} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#33CB30" : "#D90368"}} key={i}>
+      (<text x={(i+1)*this.barWidth-((i%2)===0 ? 55: 21)} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#03DAC5" : "#BB86FC"}} key={i}>
         {(((i%2)===0 ? "Player" : "AI"))}
       </text>));
     }
@@ -133,7 +133,7 @@ class PianoRoll extends Component {
     return (
       <div ref={this.divRef} style={{width: this.width, display: "inline-block", overflowX:this.state.viewWidth > this.width ? "scroll" : "hidden"}}>
         <svg ref={this.svgRef} height={this.height} width={this.state.viewWidth} >
-          <rect height={this.height} width={this.state.viewWidth} style={{fill:"#151515", strokeWidth:5, stroke:"#151515"}} />
+          <rect height={this.height} width={this.state.viewWidth} style={{fill:"#1E1E1E", strokeWidth:5, stroke:"#151515"}} />
           
           {separationBars}
           {chordText}
