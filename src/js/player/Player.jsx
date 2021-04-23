@@ -117,8 +117,8 @@ class Player extends Component {
   async midiNoteOn(e) {
     //Play the note on the sampler
     //TODO: Restrict this to not play on AI's turn
-    this.sampler.triggerAttack([e.note.name + '' + e.note.octave]);
-    if (this.state.isRecording) {
+    this.sampler.triggerAttack([e.note.name + '' + e.note.octave], this.Tone.now(), e.velocity);
+    if (this.state.isRecording && e.note.number < 84) {
       //Construct the note object
       let note = {
           pitch: e.note.number,
@@ -137,7 +137,7 @@ class Player extends Component {
     //Stop playing the note on the sampler
     this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
     //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
-    if (this.state.isRecording) {
+    if (this.state.isRecording && e.note.number < 84) {
       let curPlayerSeq = this.state.curPlayerSeq;
       //Find the last note in the sequence with the note that was released
       let i = this.findLastNote(curPlayerSeq.notes, e.note.number);
