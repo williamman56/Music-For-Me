@@ -54,10 +54,12 @@ class Player extends Component {
     this.Tone = Tone;
     this.sampler = new this.Tone.Sampler({
       urls: {
-        "C4": "C4.mp3",
-        "D#4": "Ds4.mp3",
-        "F#4": "Fs4.mp3",
-        "A4": "A4.mp3",
+        A0: "A0.mp3" , 
+        A1: "A1.mp3" , 
+        A2: "A2.mp3" , 
+        A3: "A3.mp3" , 
+        A4: "A4.mp3" , 
+        A5: "A5.mp3" , 
       },
       release: 1,
       baseUrl: "https://tonejs.github.io/audio/salamander/",
