@@ -5,7 +5,7 @@ Let's go horseys
 
 .App {
   text-align: center;
-  background-color: #010e24;
+  background-color: #171E3C;
   min-height: 100vh;
   color: whitesmoke;
   font-family: 'Space Mono', serif;
@@ -16,12 +16,12 @@ Let's go horseys
 }
 
 .Page-header {
-  background-color: #000000;
+  background-color: #171E3C;
   width: 100%;
   height: inherit;
   position: absolute;
   top: 0px;
-  color: #36CE9F;
+  color: #f4f2f0;
   font-size: calc(10px + 2vmin);
   font-family: 'Bungee Shade', serif;
 }
@@ -58,16 +58,16 @@ Let's go horseys
   width: 50px;
   border-radius: 5px;
   text-align: center;
-  background-color: #FE5800 !important;
-  border-color: #FE5800 !important;
+  background-color: #E66F00 !important;
+  border-color: #E66F00 !important;
   color: #f4f2f0;
   height: 35px;
 }
 
 /*!important to override react-bootstrap default styles*/
 button {
-  background-color: #FE5800 !important;
-  border-color: #FE5800 !important;
+  background-color: #E66F00 !important;
+  border-color: #E66F00 !important;
 }
 
 .Record-generate {
