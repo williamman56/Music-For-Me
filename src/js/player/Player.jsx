@@ -21,7 +21,8 @@ const soundfonts = {
   "Acoustic Guitar": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_steel-mp3/",
   "Church Organ": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/church_organ-mp3/",
   "Honky Tonk Piano": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/honkytonk_piano-mp3/",
-  "Harpsichord": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/harpsichord-mp3/"
+  "Harpsichord": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/harpsichord-mp3/",
+  "Ocarina": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/ocarina-mp3/"
 }
 
 class Player extends Component {
@@ -68,13 +69,14 @@ class Player extends Component {
         A5: "A5.mp3" , 
       },
       release: 1,
-      baseUrl: soundfonts["Church Organ"],
+      baseUrl: soundfonts["Piano"],
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
+    this.sampler.volume.value = 10;
     this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
     this.metronomePlayer.buffer.onload(() => {console.log("Metronome Loaded")});
     this.synth = new this.Tone.PolySynth(this.Tone.Synth).toDestination();
-    this.synth.volume.value = -4;
+    this.synth.volume.value = -8;
     this.Tone.Transport.bpm.value = this.state.tempo;
     this.player.setTempo(this.state.tempo);
     
@@ -172,6 +174,7 @@ class Player extends Component {
   
   onSelectInstrument(e) {
     this.setState({selectedInstrument: e.target.text})
+    console.log(this.sampler.volume.value)
     this.sampler.disconnect();
     this.sampler.dispose();
     this.sampler = new this.Tone.Sampler({

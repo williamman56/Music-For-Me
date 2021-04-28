@@ -3,7 +3,8 @@ export const supportedInstruments = [
     'Acoustic Guitar',
     'Church Organ', 
     'Honky Tonk Piano',
-    'Harpsichord'
+    'Harpsichord',
+    'Ocarina'
 ]
 
 export const chords = [
