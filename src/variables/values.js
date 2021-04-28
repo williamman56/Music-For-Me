@@ -1,4 +1,11 @@
-export const supportedInstruments = ['Piano', 'Guitar', 'Mayonnaise']
+export const supportedInstruments = [
+    'Piano',
+    'Acoustic Guitar',
+    'Church Organ', 
+    'Honky Tonk Piano',
+    'Harpsichord',
+    'Ocarina'
+]
 
 export const chords = [
     "A",
