@@ -16,7 +16,13 @@ import WebMidi from '../../../node_modules/webmidi/webmidi.min.js'
 const mm = require('@magenta/music/es6/core');
 const mm_rnn = require('@magenta/music/es6/music_rnn');
 
-//const primerSeq = mm.sequences.quantizeNoteSequence(TWINKLE_TWINKLE, 1);
+const soundfonts = {
+  "Piano": "https://tonejs.github.io/audio/salamander/",
+  "Acoustic Guitar": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_steel-mp3/",
+  "Church Organ": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/church_organ-mp3/",
+  "Honky Tonk Piano": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/honkytonk_piano-mp3/",
+  "Harpsichord": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/harpsichord-mp3/"
+}
 
 class Player extends Component {
   constructor(props){
@@ -62,7 +68,7 @@ class Player extends Component {
         A5: "A5.mp3" , 
       },
       release: 1,
-      baseUrl: "https://tonejs.github.io/audio/salamander/",
+      baseUrl: soundfonts["Church Organ"],
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
     this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
@@ -99,7 +105,7 @@ class Player extends Component {
       } else {
           //Detect first MIDI device connected. Will be default but selectable in the future
           this.inputDevice = WebMidi.inputs[0];
-          if (this.inputDevice) {
+          if (this.inputDevice && !this.inputDevice.enabled) {
             //On note press
             this.inputDevice.addListener('noteon', "all", this.midiNoteOn)
             //On note release
@@ -116,6 +122,7 @@ class Player extends Component {
   
   async midiNoteOn(e) {
     //Play the note on the sampler
+    console.log(this.sampler);
     //TODO: Restrict this to not play on AI's turn
     this.sampler.triggerAttack([e.note.name + '' + e.note.octave], this.Tone.now(), e.velocity);
     if (this.state.isRecording && e.note.number < 84) {
@@ -165,6 +172,21 @@ class Player extends Component {
   
   onSelectInstrument(e) {
     this.setState({selectedInstrument: e.target.text})
+    this.sampler.disconnect();
+    this.sampler.dispose();
+    this.sampler = new this.Tone.Sampler({
+      urls: {
+        A0: "A0.mp3" , 
+        A1: "A1.mp3" , 
+        A2: "A2.mp3" , 
+        A3: "A3.mp3" , 
+        A4: "A4.mp3" , 
+        A5: "A5.mp3" , 
+      },
+      release: 1,
+      baseUrl: soundfonts[e.target.text],
+      onload: () => {console.log("Sampler Loaded")}
+    }).toDestination();
   }
 
   onSetTempo(e) {
