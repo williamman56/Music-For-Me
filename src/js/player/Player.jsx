@@ -71,7 +71,7 @@ class Player extends Component {
       baseUrl: soundfonts["Piano"],
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
-    this.sampler.volume.value = 13;
+    this.sampler.volume.value = 10;
 
     this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
     this.metronomePlayer.buffer.onload(() => {console.log("Metronome Loaded")});
@@ -89,7 +89,7 @@ class Player extends Component {
       baseUrl: soundfonts["Piano"],
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
-    this.backingInstrument.volume.value = -4;
+    this.backingInstrument.volume.value = -5;
 
     this.synth = new this.Tone.PolySynth(this.Tone.Synth).toDestination();
     this.synth.volume.value = -8;
@@ -190,7 +190,6 @@ class Player extends Component {
   
   onSelectInstrument(e) {
     this.setState({selectedInstrument: e.target.text})
-    console.log(this.sampler.volume.value)
     this.sampler.disconnect();
     this.sampler.dispose();
     this.sampler = new this.Tone.Sampler({
@@ -206,6 +205,12 @@ class Player extends Component {
       baseUrl: soundfonts[e.target.text],
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
+    if (e.target.text === 'Piano') {
+      this.sampler.volume.value = 10;
+    } else {
+      this.sampler.volume.value = 13;
+    }
+    console.log(this.sampler.volume.value)
   }
 
   onSetTempo(e) {
