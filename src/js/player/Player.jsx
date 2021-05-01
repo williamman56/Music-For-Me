@@ -71,10 +71,25 @@ class Player extends Component {
       baseUrl: soundfonts["Piano"],
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
-    this.sampler.volume.value = 10;
+    this.sampler.volume.value = 13;
 
     this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
     this.metronomePlayer.buffer.onload(() => {console.log("Metronome Loaded")});
+
+    this.backingInstrument = new this.Tone.Sampler({
+      urls: {
+        A0: "A0.mp3" , 
+        A1: "A1.mp3" , 
+        A2: "A2.mp3" , 
+        A3: "A3.mp3" , 
+        A4: "A4.mp3" , 
+        A5: "A5.mp3" , 
+      },
+      release: 1,
+      baseUrl: soundfonts["Piano"],
+      onload: () => {console.log("Sampler Loaded")}
+    }).toDestination();
+    this.backingInstrument.volume.value = -4;
 
     this.synth = new this.Tone.PolySynth(this.Tone.Synth).toDestination();
     this.synth.volume.value = -8;
@@ -383,16 +398,20 @@ class Player extends Component {
   playChord(chord, duration, time) {
     this.setState({curChord: chord});
     let notes = chordToNotes[chord];
+    let quarter = this.Tone.Time('4n').toSeconds();
+    let timesPlayed = parseInt(duration / quarter);
     console.log("Notes: " + notes + "; Duration: " + duration + "; Time: " + time);
     if (notes){
-      this.synth.triggerAttack(notes[0], time);
-      this.synth.triggerAttack(notes[1], time);
-      this.synth.triggerAttack(notes[2], time);
-      //this.Tone.Transport.scheduleOnce((time) => {
-        this.synth.triggerRelease(notes[0],time+duration);
-        this.synth.triggerRelease(notes[1],time+duration);
-        this.synth.triggerRelease(notes[2],time+duration);
-      //}, time+1);
+      for (let i = 0; i < timesPlayed; i++) {
+        this.backingInstrument.triggerAttack(notes[0], time+(i*quarter), 0.7);
+        this.backingInstrument.triggerAttack(notes[1], time+(i*quarter), 0.7);
+        this.backingInstrument.triggerAttack(notes[2], time+(i*quarter), 0.7);
+        
+        this.backingInstrument.triggerRelease(notes[0],time+((i+1)*quarter));
+        this.backingInstrument.triggerRelease(notes[1],time+((i+1)*quarter));
+        this.backingInstrument.triggerRelease(notes[2],time+((i+1)*quarter));
+      }
+      
     } else {
       console.log("Chord not found");
     }
