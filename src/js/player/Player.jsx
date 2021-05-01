@@ -349,22 +349,19 @@ class Player extends Component {
         await this.setState({curPlayerSeq: {notes:[]}});
         //Calculate record time as bar length in seconds
         let recordTime = this.stepsToSeconds(BAR_LENGTH);
-
+        let startTime = this.Tone.Transport.seconds;
         //Schedule the stopping of the recording at recordTime
         this.Tone.Transport.scheduleOnce(async (time)=>{
             this.Tone.Transport.pause();
 
             //Operate on dummy var
             let curPlayerSeq = this.state.curPlayerSeq;
-            curPlayerSeq.totalTime = this.Tone.Transport.seconds;
-
+            curPlayerSeq.totalTime = startTime + recordTime;
+            this.Tone.Transport.seconds = startTime + recordTime;
             await this.setState({isRecording: false, curPlayerSeq: curPlayerSeq});
             
-            console.log('Recording Stopped');
-            //console.log(curPlayerSeq)
-            //Return curPlayerSeq
             resolve(this.state.curPlayerSeq);
-        }, this.Tone.Transport.seconds + recordTime);
+        }, startTime + recordTime);
         
         //curPlayerSeq.startTime = this.Tone.now();
         await this.setState({isRecording: true});
