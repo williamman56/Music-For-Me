@@ -56,7 +56,6 @@ class Player extends Component {
       'https://storage.googleapis.com/download.magenta.tensorflow.org/tfjs_checkpoints/music_rnn/chord_pitches_improv'
     );
 
-    this.player = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/salamander');
 
     this.Tone = Tone;
     this.sampler = new this.Tone.Sampler({
@@ -73,12 +72,29 @@ class Player extends Component {
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
     this.sampler.volume.value = 10;
+
     this.metronomePlayer = new this.Tone.Player(metronome_sound).toDestination();
     this.metronomePlayer.buffer.onload(() => {console.log("Metronome Loaded")});
+
+    this.backingInstrument = new this.Tone.Sampler({
+      urls: {
+        A0: "A0.mp3" , 
+        A1: "A1.mp3" , 
+        A2: "A2.mp3" , 
+        A3: "A3.mp3" , 
+        A4: "A4.mp3" , 
+        A5: "A5.mp3" , 
+      },
+      release: 1,
+      baseUrl: soundfonts["Piano"],
+      onload: () => {console.log("Sampler Loaded")}
+    }).toDestination();
+    this.backingInstrument.volume.value = -5;
+
     this.synth = new this.Tone.PolySynth(this.Tone.Synth).toDestination();
     this.synth.volume.value = -8;
+
     this.Tone.Transport.bpm.value = this.state.tempo;
-    this.player.setTempo(this.state.tempo);
     
     this.onSelectInstrument = this.onSelectInstrument.bind(this);
     this.onSetTempo = this.onSetTempo.bind(this);
@@ -100,26 +116,7 @@ class Player extends Component {
     this.Tone.start();
     console.log('audio is ready');
 
-    //Enable WebMIDI
-    WebMidi.enable((err) => {
-      if (err) {
-          console.log('WebMidi could not be enabled.', err);
-      } else {
-          //Detect first MIDI device connected. Will be default but selectable in the future
-          this.inputDevice = WebMidi.inputs[0];
-          if (this.inputDevice && !this.inputDevice.enabled) {
-            //On note press
-            this.inputDevice.addListener('noteon', "all", this.midiNoteOn)
-            //On note release
-            this.inputDevice.addListener('noteoff', "all", this.midiNoteOff)
-            
-            //So we don't re-add listeners if you select an already selected device
-            this.inputDevice.enabled = true;
-          } else {
-            console.log('Midi Device could not be detected');
-          }
-      }
-    });
+    
   }
   
   async midiNoteOn(e) {
@@ -133,7 +130,6 @@ class Player extends Component {
           pitch: e.note.number,
           startTime: this.Tone.Transport.seconds
       };
-      //TODO: integrate note into visualizer
       //Push note onto curPlayerSeq stack
       let curPlayerSeq = this.state.curPlayerSeq;
       curPlayerSeq.notes.push(note);
@@ -170,11 +166,30 @@ class Player extends Component {
     this.rnn.initialize().then(() => {
       this.setState({isInitialized: true});
     })
+    //Enable WebMIDI
+    WebMidi.enable((err) => {
+      if (err) {
+          console.log('WebMidi could not be enabled.', err);
+      } else {
+          //Detect first MIDI device connected. Will be default but selectable in the future
+          this.inputDevice = WebMidi.inputs[0];
+          if (this.inputDevice && !this.inputDevice.enabled) {
+            //On note press
+            this.inputDevice.addListener('noteon', "all", this.midiNoteOn)
+            //On note release
+            this.inputDevice.addListener('noteoff', "all", this.midiNoteOff)
+            
+            //So we don't re-add listeners if you select an already selected device
+            this.inputDevice.enabled = true;
+          } else {
+            console.log('Midi Device could not be detected');
+          }
+      }
+    });
   }
   
   onSelectInstrument(e) {
     this.setState({selectedInstrument: e.target.text})
-    console.log(this.sampler.volume.value)
     this.sampler.disconnect();
     this.sampler.dispose();
     this.sampler = new this.Tone.Sampler({
@@ -190,6 +205,12 @@ class Player extends Component {
       baseUrl: soundfonts[e.target.text],
       onload: () => {console.log("Sampler Loaded")}
     }).toDestination();
+    if (e.target.text === 'Piano') {
+      this.sampler.volume.value = 10;
+    } else {
+      this.sampler.volume.value = 13;
+    }
+    console.log(this.sampler.volume.value)
   }
 
   onSetTempo(e) {
@@ -382,16 +403,20 @@ class Player extends Component {
   playChord(chord, duration, time) {
     this.setState({curChord: chord});
     let notes = chordToNotes[chord];
+    let quarter = this.Tone.Time('4n').toSeconds();
+    let timesPlayed = parseInt(duration / quarter);
     console.log("Notes: " + notes + "; Duration: " + duration + "; Time: " + time);
     if (notes){
-      this.synth.triggerAttack(notes[0], time);
-      this.synth.triggerAttack(notes[1], time);
-      this.synth.triggerAttack(notes[2], time);
-      //this.Tone.Transport.scheduleOnce((time) => {
-        this.synth.triggerRelease(notes[0],time+duration);
-        this.synth.triggerRelease(notes[1],time+duration);
-        this.synth.triggerRelease(notes[2],time+duration);
-      //}, time+1);
+      for (let i = 0; i < timesPlayed; i++) {
+        this.backingInstrument.triggerAttack(notes[0], time+(i*quarter), 0.7);
+        this.backingInstrument.triggerAttack(notes[1], time+(i*quarter), 0.7);
+        this.backingInstrument.triggerAttack(notes[2], time+(i*quarter), 0.7);
+        
+        this.backingInstrument.triggerRelease(notes[0],time+((i+1)*quarter));
+        this.backingInstrument.triggerRelease(notes[1],time+((i+1)*quarter));
+        this.backingInstrument.triggerRelease(notes[2],time+((i+1)*quarter));
+      }
+      
     } else {
       console.log("Chord not found");
     }
