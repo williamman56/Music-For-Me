@@ -9,15 +9,18 @@ class PianoRoll extends Component {
     
     this.state = {
       bars: [],
-      viewWidth: window.innerWidth * 0.8//Total width including hidden parts (will expand as notes are added)
+      activeNotes: [],
+      viewWidth: window.innerWidth//Total width including hidden parts (will expand as notes are added)
     }
     
     this.height = window.innerHeight * .55;
     //TODO: Update widht&height when user resizes window
-    this.width = window.innerWidth * .8;//Width for what is visible (only based on window size)
-    this.barWidth = window.innerWidth * .2;
+    this.width = window.innerWidth;//Width for what is visible (only based on window size)
+    this.barWidth = window.innerWidth * .25;
 
-    this.barModifier = 50//Controls length of bars on the piano roll
+    this.barModifier = (window.innerWidth * .25)/this.props.barTime;//Controls length of bars on the piano roll
+    
+    this.updateActiveNotes = this.updateActiveNotes.bind(this);
     
     this.divRef = React.createRef();
     this.svgRef = React.createRef();
@@ -25,6 +28,17 @@ class PianoRoll extends Component {
 
   componentDidMount() {
     this.props.onRef(this)
+    let that = this
+    this.props.transport.on("start", function(){ 
+      if (that.props.isStarted) {
+        that.growth = setInterval(function() {
+          that.updateActiveNotes();
+        }, 50)
+      }
+    })
+    
+    this.props.transport.on("stop", function(){ clearInterval(that.growth) })
+    this.props.transport.on("pause", function(){ clearInterval(that.growth) })
   }
   
   componentWillUnmount() {
@@ -33,14 +47,59 @@ class PianoRoll extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     if (this.props.currentNote !== prevProps.currentNote) {
-      this.drawNote(this.props.currentNote)
+      this.startNote(this.props.currentNote);
+      //this.drawNote(this.props.currentNote)
     }
     if (this.props.aiSeq !== prevProps.aiSeq) {
       this.drawNoteSequence(this.props.aiSeq)
     }
+    if (this.props.endingNote && this.props.endingNote !== prevProps.endingNote) {
+      this.endNote(this.props.endingNote);
+    }
   }
   
-  drawNote(note, aiNote=false) {
+  startNote(note) {//Only used for human notes
+    let pitch = this.scalePitch(note.pitch), m = this.barModifier;
+    let w = (this.props.transport.seconds - note.startTime)*m;
+    let multiplier = this.props.barCount*m*this.props.barTime;
+    let x = this.width * (note.startTime / (this.props.barTime*4));
+    let bar = {startTime: note.startTime,
+                x:x,
+                y:pitch,
+                height:10,
+                width:w,
+                pitch:note.pitch,
+                num:this.state.bars.length+this.state.activeNotes.length,
+                style:{fill:'#03DAC5'}}
+    this.setState({activeNotes: [...this.state.activeNotes, bar]})
+  }
+  
+  updateActiveNotes() {
+    //console.log(this.state.activeNotes);
+    this.setState({activeNotes: this.state.activeNotes.map((note)=>{
+      note.width = (this.props.transport.seconds - note.startTime)*this.barModifier;
+      return note;
+    })});
+  }
+  
+  endNote(pitch) {
+    for (let note of this.state.activeNotes) {
+      if (note.pitch === pitch) {
+        let bar = React.createElement('rect', {
+                                        x:note.x, 
+                                        y:note.y, 
+                                        height:note.height, 
+                                        width:note.width, 
+                                        key:note.num,
+                                        style:note.style
+                                      }, null)
+        this.setState({bars:[...this.state.bars, bar], activeNotes: this.state.activeNotes.filter((note)=>{return note.pitch !== pitch})});
+      }
+    }
+  }
+  
+  drawNote(note, aiNote=false) {//Currently only used by AI notes, could use a touch up cause it's still coded to handle human input
+    this.updateActiveNotes();
     let pitch = this.scalePitch(note.pitch), m = this.barModifier;
     let w = (note.endTime - note.startTime)*m;
     //RecordPlayer starts time from 0, so we need a multiplier
@@ -113,7 +172,7 @@ class PianoRoll extends Component {
   render() {
     const separationBars = [], chordText = []
     for (let i = 0; i < this.state.viewWidth/this.barWidth; ++i) {
-      separationBars.push(<rect height={this.height} width="3" x={i*this.barWidth} key={i} style={{fill:'white', zIndex: 999}}/>);
+      separationBars.push(<rect height={this.height} width="3" x={i*this.barWidth} key={i*3} style={{fill:'white', zIndex: 999}}/>);
       /*separationBars.push(<rect 
                             height={this.height} 
                             width="3" 
@@ -121,11 +180,11 @@ class PianoRoll extends Component {
                             key={i} 
                           />);*/
       chordText.push(
-      (<text x={i*this.barWidth+10} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#03DAC5" : "#BB86FC"}} key={i}>
+      (<text x={i*this.barWidth+10} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#03DAC5" : "#BB86FC"}} key={i*3+1}>
         {this.props.selectedChords[i%this.props.selectedChords.length]}
       </text>));
       chordText.push(
-      (<text x={(i+1)*this.barWidth-((i%2)===0 ? 55: 21)} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#03DAC5" : "#BB86FC"}} key={i}>
+      (<text x={(i+1)*this.barWidth-((i%2)===0 ? 55: 21)} y="22" className="chord-text" style={{fill: (i%2)===0 ? "#03DAC5" : "#BB86FC"}} key={i*3+2 }>
         {(((i%2)===0 ? "Player" : "AI"))}
       </text>));
     }
@@ -141,6 +200,18 @@ class PianoRoll extends Component {
           {this.state.bars.map(function(b,i){
             return b
           })}
+          {this.state.activeNotes.map(function(note,i){
+            return (<rect 
+                      x={note.x}
+                      y={note.y}
+                      height={note.height}
+                      width={note.width}
+                      key={note.num}
+                      style={note.style}
+            />)
+          })}
+          
+          
           <PianoBar 
             height={this.height} 
             width={this.width} 

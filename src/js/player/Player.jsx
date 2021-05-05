@@ -39,6 +39,7 @@ class Player extends Component {
       sessionSeq: mm.sequences.quantizeNoteSequence(EMPTY, STEPS_PER_QUARTER),
       //The players current playing notes. Resets every player turn
       curPlayerSeq: {notes:[]},
+      activeNotes: [],
       curAISeq: null,
       curChord: null,
       inSession: false,
@@ -47,6 +48,7 @@ class Player extends Component {
       isInitialized: false,
       isStarted: false,
       currentNote: null,
+      endingNote: null,
       temperature: 1.1,
       tempo: 95,
       barCount: 0
@@ -121,7 +123,7 @@ class Player extends Component {
   
   async midiNoteOn(e) {
     //Play the note on the sampler
-    console.log(this.sampler);
+    //console.log(e);
     //TODO: Restrict this to not play on AI's turn
     this.sampler.triggerAttack([e.note.name + '' + e.note.octave], this.Tone.now(), e.velocity);
     if (this.state.isRecording && e.note.number < 84) {
@@ -133,7 +135,7 @@ class Player extends Component {
       //Push note onto curPlayerSeq stack
       let curPlayerSeq = this.state.curPlayerSeq;
       curPlayerSeq.notes.push(note);
-      await this.setState({curPlayerSeq: curPlayerSeq});
+      await this.setState({curPlayerSeq: curPlayerSeq, currentNote: note});
     }
     
   }
@@ -142,6 +144,8 @@ class Player extends Component {
     //Stop playing the note on the sampler
     this.sampler.triggerRelease([e.note.name + '' + e.note.octave])
     //console.log("Received 'noteoff' message (" + e.note.name + e.note.octave + ').');
+    this.setState({endingNote: e.note.number});
+    
     if (this.state.isRecording && e.note.number < 84) {
       let curPlayerSeq = this.state.curPlayerSeq;
       //Find the last note in the sequence with the note that was released
@@ -157,7 +161,7 @@ class Player extends Component {
         })
         i = 0;
       }
-      await this.setState({curPlayerSeq: curPlayerSeq, currentNote: curPlayerSeq.notes[i]});
+      await this.setState({curPlayerSeq: curPlayerSeq, endingNote: 0});
     }
     
   }
@@ -250,9 +254,6 @@ class Player extends Component {
     let notes = chordToNotes[this.state.curChord];
     if (this.state.isRecording) {
       this.Tone.Transport.pause();
-      this.synth.triggerRelease(notes[0],this.Tone.now());
-      this.synth.triggerRelease(notes[1],this.Tone.now());
-      this.synth.triggerRelease(notes[2],this.Tone.now());
     }
     this.setState({inSession: false, isRecording: false});
   }
@@ -269,9 +270,7 @@ class Player extends Component {
     //Stop playing chord if it was playing before session started
     if (this.state.curChord) {
       let notes = chordToNotes[this.state.curChord];
-      this.synth.triggerRelease(notes[0],this.Tone.now());
-      this.synth.triggerRelease(notes[1],this.Tone.now());
-      this.synth.triggerRelease(notes[2],this.Tone.now());
+
     }
 
     const countOff = new Tone.Part(((time) => {
@@ -298,7 +297,7 @@ class Player extends Component {
       while(this.state.inSession) {
         //PLAYER 
         let i = this.state.barCount % chordCount;
-        this.playChord(chords[i], bar_time, this.Tone.now());
+        this.playChord(chords[i], bar_time, this.Tone.Transport.seconds);
         var playerSeq = await(this.recordPlayer());
         playerSeq.tempos = [{qpm:this.state.tempo, time:0}];
         playerSeq = mm.sequences.quantizeNoteSequence(playerSeq, STEPS_PER_QUARTER);
@@ -322,9 +321,9 @@ class Player extends Component {
         await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, curAISeq: aiSeq, barCount: this.state.barCount+1});
         //Play the AI seq
         i = (this.state.barCount-1)%chordCount;
-        console.log(this.state.barCount);
-        console.log(chords);
-        this.playChord(chords[i], bar_time, this.Tone.now());
+        //console.log(this.state.barCount);
+        //console.log(chords);
+        this.playChord(chords[i], bar_time, this.Tone.Transport.seconds);
         await this.playNotes(aiSeq);
 
         this.Tone.Transport.pause()
@@ -408,13 +407,17 @@ class Player extends Component {
     console.log("Notes: " + notes + "; Duration: " + duration + "; Time: " + time);
     if (notes){
       for (let i = 0; i < timesPlayed; i++) {
-        this.backingInstrument.triggerAttack(notes[0], time+(i*quarter), 0.7);
-        this.backingInstrument.triggerAttack(notes[1], time+(i*quarter), 0.7);
-        this.backingInstrument.triggerAttack(notes[2], time+(i*quarter), 0.7);
-        
-        this.backingInstrument.triggerRelease(notes[0],time+((i+1)*quarter));
-        this.backingInstrument.triggerRelease(notes[1],time+((i+1)*quarter));
-        this.backingInstrument.triggerRelease(notes[2],time+((i+1)*quarter));
+        this.Tone.Transport.schedule((time) => {
+          this.backingInstrument.triggerAttack(notes[0], time, 0.7);
+          this.backingInstrument.triggerAttack(notes[1], time, 0.7);
+          this.backingInstrument.triggerAttack(notes[2], time, 0.7);
+        }, time+(i*quarter))
+        console.log(time+(i*quarter))
+        this.Tone.Transport.schedule((time) => {
+          this.backingInstrument.triggerRelease(notes[0],time);
+          this.backingInstrument.triggerRelease(notes[1],time);
+          this.backingInstrument.triggerRelease(notes[2],time);
+        }, time+((i+1)*quarter));
       }
       
     } else {
@@ -431,9 +434,9 @@ class Player extends Component {
 
       for (let j = 0; j < bar_count; j++) {
         console.log(j%bar_count)
-        this.Tone.Transport.schedule((time) => {
-          this.playChord(chords[j%chords.length], bar_time, time);
-        }, bar_time*j+0.1);
+        //this.Tone.Transport.schedule((time) => {
+          this.playChord(chords[j%chords.length], bar_time, bar_time*j+0.1);
+        //}, bar_time*j+0.1);
       }
       resolve();
     });
@@ -541,7 +544,9 @@ class Player extends Component {
             playNote={this.playNote}
             transport={this.Tone.Transport}
             stepsToSeconds={this.stepsToSeconds}
-            selectedChords={this.state.selectedChords} />
+            selectedChords={this.state.selectedChords}
+            endingNote={this.state.endingNote}
+            />
         </div>
         
         <div className='Play-recording'>
