@@ -254,9 +254,6 @@ class Player extends Component {
     let notes = chordToNotes[this.state.curChord];
     if (this.state.isRecording) {
       this.Tone.Transport.pause();
-      this.synth.triggerRelease(notes[0],this.Tone.now());
-      this.synth.triggerRelease(notes[1],this.Tone.now());
-      this.synth.triggerRelease(notes[2],this.Tone.now());
     }
     this.setState({inSession: false, isRecording: false});
   }
@@ -273,9 +270,7 @@ class Player extends Component {
     //Stop playing chord if it was playing before session started
     if (this.state.curChord) {
       let notes = chordToNotes[this.state.curChord];
-      this.synth.triggerRelease(notes[0],this.Tone.now());
-      this.synth.triggerRelease(notes[1],this.Tone.now());
-      this.synth.triggerRelease(notes[2],this.Tone.now());
+
     }
 
     const countOff = new Tone.Part(((time) => {
@@ -302,7 +297,7 @@ class Player extends Component {
       while(this.state.inSession) {
         //PLAYER 
         let i = this.state.barCount % chordCount;
-        this.playChord(chords[i], bar_time, this.Tone.now());
+        this.playChord(chords[i], bar_time, this.Tone.Transport.seconds);
         var playerSeq = await(this.recordPlayer());
         playerSeq.tempos = [{qpm:this.state.tempo, time:0}];
         playerSeq = mm.sequences.quantizeNoteSequence(playerSeq, STEPS_PER_QUARTER);
@@ -328,7 +323,7 @@ class Player extends Component {
         i = (this.state.barCount-1)%chordCount;
         //console.log(this.state.barCount);
         //console.log(chords);
-        this.playChord(chords[i], bar_time, this.Tone.now());
+        this.playChord(chords[i], bar_time, this.Tone.Transport.seconds);
         await this.playNotes(aiSeq);
 
         this.Tone.Transport.pause()
@@ -412,13 +407,17 @@ class Player extends Component {
     console.log("Notes: " + notes + "; Duration: " + duration + "; Time: " + time);
     if (notes){
       for (let i = 0; i < timesPlayed; i++) {
-        this.backingInstrument.triggerAttack(notes[0], time+(i*quarter), 0.7);
-        this.backingInstrument.triggerAttack(notes[1], time+(i*quarter), 0.7);
-        this.backingInstrument.triggerAttack(notes[2], time+(i*quarter), 0.7);
-        
-        this.backingInstrument.triggerRelease(notes[0],time+((i+1)*quarter));
-        this.backingInstrument.triggerRelease(notes[1],time+((i+1)*quarter));
-        this.backingInstrument.triggerRelease(notes[2],time+((i+1)*quarter));
+        this.Tone.Transport.schedule((time) => {
+          this.backingInstrument.triggerAttack(notes[0], time, 0.7);
+          this.backingInstrument.triggerAttack(notes[1], time, 0.7);
+          this.backingInstrument.triggerAttack(notes[2], time, 0.7);
+        }, time+(i*quarter))
+        console.log(time+(i*quarter))
+        this.Tone.Transport.schedule((time) => {
+          this.backingInstrument.triggerRelease(notes[0],time);
+          this.backingInstrument.triggerRelease(notes[1],time);
+          this.backingInstrument.triggerRelease(notes[2],time);
+        }, time+((i+1)*quarter));
       }
       
     } else {
@@ -435,9 +434,9 @@ class Player extends Component {
 
       for (let j = 0; j < bar_count; j++) {
         console.log(j%bar_count)
-        this.Tone.Transport.schedule((time) => {
-          this.playChord(chords[j%chords.length], bar_time, time);
-        }, bar_time*j+0.1);
+        //this.Tone.Transport.schedule((time) => {
+          this.playChord(chords[j%chords.length], bar_time, bar_time*j+0.1);
+        //}, bar_time*j+0.1);
       }
       resolve();
     });
