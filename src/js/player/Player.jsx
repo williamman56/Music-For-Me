@@ -291,8 +291,6 @@ class Player extends Component {
       var bar_time = this.stepsToSeconds(BAR_LENGTH);
       await this.Tone.start();
       console.log('Beginning Session');
-    
-      let cont = false;
 
       while(this.state.inSession) {
         //PLAYER 
@@ -305,12 +303,11 @@ class Player extends Component {
         noteSequences = this.state.noteSequences;
         noteSequences[this.state.barCount] = playerSeq;
         sessionSeq = this.addNoteSeqs(this.state.sessionSeq, playerSeq);
-        console.log(sessionSeq)
-        console.log(playerSeq);
+        //console.log(sessionSeq)
+        //console.log(playerSeq);
         await this.setState({sessionSeq: sessionSeq, noteSequences: noteSequences, barCount: this.state.barCount+1});
-        //BAR 2: AI
-        //Generate AI sequence 1
 
+        //AI
         var aiSeq = await this.generateNextSequence(this.state.sessionSeq, this.state.selectedChords[i]);
         //combine the note sequences
         sessionSeq = mm.sequences.concatenate([this.state.sessionSeq, aiSeq]);
@@ -326,7 +323,8 @@ class Player extends Component {
         this.playChord(chords[i], bar_time, this.Tone.Transport.seconds);
         await this.playNotes(aiSeq);
 
-        this.Tone.Transport.pause()
+        this.Tone.Transport.pause();
+        this.Tone.Transport.seconds = this.stepsToSeconds(BAR_LENGTH) * this.state.barCount;
       }
     }, {"2n": 3, "4n": 2});
     await this.Tone.Transport.start(); 
